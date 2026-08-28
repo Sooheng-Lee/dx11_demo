@@ -37,7 +37,10 @@ void Keyboard::AddKeyboardEvent(const UCHAR keyCode, eKeyboardState state)
 
 KeyboardEvent Keyboard::GetKeyboardEvent()
 {
-	if (_events.empty()) return KeyboardEvent();
+	if (_events.empty()) {
+		_lastEvent = KeyboardEvent();
+		return KeyboardEvent();
+	};
 	KeyboardEvent event = _events.front();
 	_lastEvent = event;
 	_events.pop();

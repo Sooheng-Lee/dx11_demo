@@ -22,7 +22,7 @@ private:
 	DirectX::XMMATRIX _projMat;
 	
 	FLOAT _fovAngle = 0.0f;
-	const DirectX::XMFLOAT4 DEFAULT_UP_VECTOR = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 0.0f);
-	const DirectX::XMFLOAT4 DEFAULT_FORWARD_VECTOR = DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
+	const DirectX::XMVECTOR DEFAULT_UP_VECTOR = DirectX::XMVectorSet(0.0f, 1.0f, 0.0f, 0.0f);
+	const DirectX::XMVECTOR DEFAULT_FORWARD_VECTOR = DirectX::XMVectorSet(0.0f, 0.0f, 1.0f, 0.0f);
 };
 

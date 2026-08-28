@@ -22,14 +22,13 @@ void Camera::SetPosition(FLOAT x, FLOAT y, FLOAT z)
 
 void Camera::UpdateMatrix()
 {
-	_transformMat = DirectX::XMMatrixScaling(1.0f, 1.0f, 1.0f);
-	_transformMat *= DirectX::XMMatrixRotationRollPitchYaw(_rotation.x, _rotation.y, _rotation.z);
-	_transformMat *= DirectX::XMMatrixTranslation(_position.x, _position.y, _position.z);
+	DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&_position);
+	DirectX::XMMATRIX rotMat = DirectX::XMMatrixRotationRollPitchYaw(_rotation.x, _rotation.y, _rotation.z);
+	
+	DirectX::XMVECTOR up = DirectX::XMVector3TransformNormal(DEFAULT_UP_VECTOR, rotMat);
+	DirectX::XMVECTOR forward = DirectX::XMVector3TransformNormal(DEFAULT_FORWARD_VECTOR, rotMat);
+	DirectX::XMVECTOR target = DirectX::XMVectorAdd(pos, forward);
 
-	DirectX::XMFLOAT4 at = DirectX::XMFLOAT4(_position.x + DEFAULT_FORWARD_VECTOR.x, _position.y + DEFAULT_FORWARD_VECTOR.y, _position.z + DEFAULT_FORWARD_VECTOR.z, 1.0f);
-	DirectX::XMVECTOR eye = DirectX::XMLoadFloat3(&_position);
-	DirectX::XMVECTOR up = DirectX::XMLoadFloat4(&DEFAULT_UP_VECTOR);
-	DirectX::XMVECTOR atVector = DirectX::XMLoadFloat4(&at);
-	_viewMat = DirectX::XMMatrixLookAtLH(eye, atVector, up);
+	_viewMat = DirectX::XMMatrixLookAtLH(pos, target, up);
 	_projMat = DirectX::XMMatrixPerspectiveFovLH(_fovAngle / 360.0f * DirectX::XM_2PI, Graphic::GetInstance()->GetWidth() / Graphic::GetInstance()->GetHeight(), 0.0001f, 1000.0f);
 }

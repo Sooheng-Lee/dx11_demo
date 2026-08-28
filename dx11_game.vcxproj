@@ -141,6 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="src\Utils\GameTimer.h" />
     <ClInclude Include="src\Graphics\Camera.h" />
     <ClInclude Include="src\Inputs\Keyboard.h" />
     <ClInclude Include="src\Graphics\ConstantBuffer.h" />
@@ -156,6 +157,7 @@
     <ClInclude Include="src\Graphics\Texture.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="src\Utils\GameTimer.cpp" />
     <ClCompile Include="src\Graphics\Camera.cpp" />
     <ClCompile Include="src\Inputs\Keyboard.cpp" />
     <ClCompile Include="src\Graphics\ConstantBuffer.cpp" />

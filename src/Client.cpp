@@ -65,6 +65,7 @@ Client::~Client()
 
 void Client::Update()
 {
+	GameTimer::GetInstance()->Update();
 	_keyboard->GetKeyboardEvent();
 }
 

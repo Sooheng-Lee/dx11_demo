@@ -24,6 +24,7 @@ bool Engine::Init()
 	CreateConstantBuffer();
 	CreateRSState();
 	_camera = std::make_shared<Camera>();
+	GameTimer::GetInstance()->ToggleState();
 	return true;
 }
 
@@ -31,30 +32,49 @@ void Engine::Update()
 {
 	__super::Update();
 	DirectX::XMFLOAT3 camPosition = _camera->GetPosition();
+	FLOAT moveSpeed = 500.0f;
 	if (_keyboard->GetKey('W'))
 	{
-		camPosition.z += 0.001f;
+		camPosition.z += GameTimer::GetInstance()->GetDeltaTime() * moveSpeed;
 		OutputDebugStringW(L"W\n");
 	}
 	if (_keyboard->GetKey('S'))
 	{
-		camPosition.z -= 0.001f;
+		camPosition.z -= GameTimer::GetInstance()->GetDeltaTime() * moveSpeed;
 		OutputDebugStringW(L"S\n");
 	}
 	if (_keyboard->GetKey('D'))
 	{
-		camPosition.x += 0.001f;
+		camPosition.x += GameTimer::GetInstance()->GetDeltaTime() * moveSpeed;
 		OutputDebugStringW(L"D\n");
 	}
 	if (_keyboard->GetKey('A'))
 	{
-		camPosition.x -= 0.001f;
+		camPosition.x -= GameTimer::GetInstance()->GetDeltaTime() * moveSpeed;
 		OutputDebugStringW(L"A\n");
 	}
+	if (_keyboard->GetKey('E'))
+	{
+		camPosition.y += GameTimer::GetInstance()->GetDeltaTime() * moveSpeed;
+		OutputDebugStringW(L"E\n");
+	}
+	if (_keyboard->GetKey('Q'))
+	{
+		camPosition.y -= GameTimer::GetInstance()->GetDeltaTime() * moveSpeed;
+		OutputDebugStringW(L"Q\n");
+	}
+	if (_keyboard->GetKeyDown(VK_ESCAPE))
+	{
+		GameTimer::GetInstance()->ToggleState();
+		OutputDebugStringW(L"ESC\n");
+	}
+
 	_camera->SetPosition(camPosition.x, camPosition.y, camPosition.z);
 	static float angle = 0.001f;
-	angle += 0.0001f;
-	_constData.worldMat = DirectX::XMMatrixRotationZ(angle) * _camera->GetViewMat() * _camera->GetProjMat();
+	angle += GameTimer::GetInstance()->GetDeltaTime();
+	_constData.worldMat = DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationZ(angle));
+	_constData.viewMat = DirectX::XMMatrixTranspose(_camera->GetViewMat());
+	_constData.projMat = DirectX::XMMatrixTranspose(_camera->GetProjMat());
 	_constantBuffer->Update(&_constData);
 }
 

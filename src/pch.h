@@ -23,6 +23,7 @@ using namespace Microsoft::WRL;
 
 // Client
 #include "Inputs/Keyboard.h"
+#include "Utils/GameTimer.h"
 // Engine
 #include "Graphics/Graphic.h"
 #include "Graphics/Geometry.h"
@@ -32,6 +33,7 @@ using namespace Microsoft::WRL;
 #include "Graphics/Texture.h"
 #include "Graphics/ConstantBuffer.h"
 #include "Graphics/Camera.h"
+
 
 #include "Structs.h"
 #include "Engine.h"
