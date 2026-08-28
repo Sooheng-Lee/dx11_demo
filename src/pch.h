@@ -4,6 +4,7 @@
 #include <assert.h>
 #include <memory>
 #include <string>
+#include <cmath>
 
 // DX
 #include <d3d11.h>
@@ -69,4 +70,5 @@ inline DirectX::XMFLOAT4X4 ConvertMatrix(
 
 #include "Structs.h"
 #include "Model.h"
+#include "Animation.h"
 #include "Engine.h"

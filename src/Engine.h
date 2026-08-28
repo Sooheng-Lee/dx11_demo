@@ -18,6 +18,7 @@ private:
 	void CreateVertexShader();
 	void CreatePixelShader();
 	void CreateSRV();
+	void CreateAnimation();
 	void CreateConstantBuffer();
 
 	void CreateRSState();
@@ -36,6 +37,7 @@ private:
 	std::shared_ptr<Texture> _texture;
 	std::shared_ptr<ConstantBuffer<TransformData>> _constantBuffer;
 	std::shared_ptr<ConstantBuffer<BoneTransformData>> _boneConstantBuffer;
+	std::shared_ptr<Animation> _animation;
 
 	// States
 	ComPtr<ID3D11RasterizerState> _rsState;

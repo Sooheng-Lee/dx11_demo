@@ -26,6 +26,7 @@ bool Engine::Init()
 	CreateIndexBuffer();
 	CreatePixelShader();
 	CreateSRV();
+	CreateAnimation();
 	CreateConstantBuffer();
 	CreateRSState();
 	CreateBlendState();
@@ -86,6 +87,13 @@ void Engine::Update()
 	_constData.viewMat = DirectX::XMMatrixTranspose(_camera->GetViewMat());
 	_constData.projMat = DirectX::XMMatrixTranspose(_camera->GetProjMat());
 	_constantBuffer->Update(&_constData);
+
+	if (_animation != nullptr)
+	{
+		_animation->Update(GameTimer::GetInstance()->GetDeltaTime());
+		_boneConstData = _animation->GetBoneTransformData();
+		_boneConstantBuffer->Update(&_boneConstData);
+	}
 }
 
 void Engine::Render()
@@ -168,6 +176,17 @@ void Engine::CreateSRV()
 	
 	_texture = std::make_shared<Texture>();
 	_texture->Create(L"Data\\FBX\\Man\\Man_texture_0.png");
+}
+
+void Engine::CreateAnimation()
+{
+	_animation = std::make_shared<Animation>();
+	_animation->Load(
+		"Data\\FBX\\Man\\Idle.fbx",
+		_model.GetBoneInfoMap(),
+		_model.GetBoneCount()
+	);
+	_boneConstData = _animation->GetBoneTransformData();
 }
 
 void Engine::CreateConstantBuffer()
