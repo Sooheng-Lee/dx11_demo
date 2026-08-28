@@ -13,6 +13,12 @@ bool Engine::Init()
 	if (!GetAdapters()) return false;
 	if (!CreateDeviceAndSwapChain()) return false;
 	if (!CreateRenderTargetView()) return false;
+
+	CreateInputLayout();
+	CreateVertexBuffer();
+	CreateIndexBuffer();
+	CreateVertexShader();
+	CreatePixelShader();
 	return true;
 }
 
@@ -23,6 +29,14 @@ void Engine::Update()
 void Engine::Render()
 {
 	RenderBegin();
+	UINT stride = sizeof(VertexColorData);
+	UINT offset = 0;
+	_deviceContext->IASetInputLayout(_inputLayout.Get());
+	_deviceContext->IASetVertexBuffers(0, 1, _vertexBuffer.GetAddressOf(), &stride, &offset);
+	_deviceContext->IASetIndexBuffer(_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, offset);
+	_deviceContext->VSSetShader(_vertexShader.Get(), nullptr, 0);
+	_deviceContext->PSSetShader(_pixelShader.Get(), nullptr, 0);
+	_deviceContext->DrawIndexed(6, 0, 0);
 	RenderEnd();
 }
 
@@ -109,10 +123,92 @@ bool Engine::CreateRenderTargetView()
 	return true;
 }
 
+void Engine::CreateInputLayout()
+{
+	ComPtr<ID3DBlob> errorBlob;
+	HRESULT hr = D3DCompileFromFile(L"src\\HLSL\\DefaultColor.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "VS", "vs_5_0", 0, 0, _vsBlob.GetAddressOf(), errorBlob.GetAddressOf());
+	if (errorBlob)
+	{
+		OutputDebugStringA(static_cast<const char*>(errorBlob->GetBufferPointer()));
+		return;
+	}
+
+	D3D11_INPUT_ELEMENT_DESC layouts[] = {
+		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+	};
+	
+	hr = _device->CreateInputLayout(layouts, ARRAYSIZE(layouts), _vsBlob->GetBufferPointer(), _vsBlob->GetBufferSize(), _inputLayout.GetAddressOf());
+	CHECK(hr);
+}
+
+void Engine::CreateVertexBuffer()
+{
+	std::vector<VertexColorData> vertices;
+	vertices.resize(4);
+	{
+		vertices[0].position = DirectX::XMFLOAT3(-0.5f, -0.5f, 0.0f);
+		vertices[0].color = DirectX::XMFLOAT4(1.0f, 0.0f, 0.0f, 1.0f);
+		vertices[1].position = DirectX::XMFLOAT3(-0.5f, 0.5f, 0.0f);
+		vertices[1].color = DirectX::XMFLOAT4(0.0f, 1.0f, 0.0f, 1.0f);
+		vertices[2].position = DirectX::XMFLOAT3(0.5f, 0.5f, 0.0f);
+		vertices[2].color = DirectX::XMFLOAT4(0.0f, 0.0f, 1.0f, 1.0f);
+		vertices[3].position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
+		vertices[3].color = DirectX::XMFLOAT4(1.0f, 1.0f, 0.0f, 1.0f);
+	}
+	D3D11_BUFFER_DESC desc = {};
+	{
+		desc.ByteWidth = sizeof(VertexColorData) * vertices.size();
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+		desc.MiscFlags = 0;
+	}
+	D3D11_SUBRESOURCE_DATA data = {};
+	data.pSysMem = vertices.data();
+	HRESULT hr = _device->CreateBuffer(&desc, &data, _vertexBuffer.GetAddressOf());
+	CHECK(hr);
+}
+
+void Engine::CreateIndexBuffer()
+{
+	std::vector<UINT> indices = { 0, 1, 2, 2, 3, 0 };
+	D3D11_BUFFER_DESC desc = {};
+	{
+		desc.ByteWidth = sizeof(UINT) * indices.size();
+		desc.Usage = D3D11_USAGE_DEFAULT;
+		desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+		desc.MiscFlags = 0;
+	}
+	D3D11_SUBRESOURCE_DATA data = {};
+	data.pSysMem = indices.data();
+	HRESULT hr = _device->CreateBuffer(&desc, &data, _indexBuffer.GetAddressOf());
+	CHECK(hr);
+}
+
+void Engine::CreateVertexShader()
+{
+	HRESULT hr = _device->CreateVertexShader(_vsBlob->GetBufferPointer(), _vsBlob->GetBufferSize(), nullptr, _vertexShader.GetAddressOf());
+	CHECK(hr);
+}
+
+void Engine::CreatePixelShader()
+{
+	ComPtr<ID3DBlob> errorBlob;
+	HRESULT hr = D3DCompileFromFile(L"src\\HLSL\\DefaultColor.hlsl", nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE, "PS", "ps_5_0", 0, 0, _psBlob.GetAddressOf(), errorBlob.GetAddressOf());
+	if (errorBlob)
+	{
+		OutputDebugStringA(static_cast<const char*>(errorBlob->GetBufferPointer()));
+		return;
+	}
+	hr = _device->CreatePixelShader(_psBlob->GetBufferPointer(), _psBlob->GetBufferSize(), nullptr, _pixelShader.GetAddressOf());
+	CHECK(hr);
+}
+
 void Engine::RenderBegin()
 {
 	FLOAT clearView[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 	_deviceContext->ClearRenderTargetView(_renderTargetView.Get(), clearView);
+	_deviceContext->ClearDepthStencilView(_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 }
 

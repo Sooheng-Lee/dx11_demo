@@ -14,6 +14,7 @@
 #include <map>
 using namespace Microsoft::WRL;
 
+#include "Structs.h"
 #include "Engine.h"
 
 // Define
