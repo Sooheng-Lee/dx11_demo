@@ -12,3 +12,10 @@ struct VertexTexData
 	DirectX::XMFLOAT3 position;
 	DirectX::XMFLOAT2 uv;
 };
+
+struct TransformData
+{
+	DirectX::XMMATRIX worldMat;
+	DirectX::XMMATRIX viewMat;
+	DirectX::XMMATRIX projMat;
+};

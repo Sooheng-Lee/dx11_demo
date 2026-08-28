@@ -12,43 +12,35 @@ protected:
 	virtual void Render() override;
 
 private:
-
-	bool CreateRenderTargetView();
-
 	void CreateInputLayout();
 	void CreateVertexBuffer();
 	void CreateIndexBuffer();
 	void CreateVertexShader();
 	void CreatePixelShader();
 	void CreateSRV();
+	void CreateConstantBuffer();
 
 	void CreateRSState();
 	void CreateBlendState();
 	void CreateSamplerState();
 
-	void RenderBegin();
-	void RenderEnd();
 private:
 	// Graphics
-	ComPtr<ID3D11RenderTargetView> _renderTargetView;
-	ComPtr<ID3D11DepthStencilView> _depthStencilView;
 
 	// Geometry
-	std::shared_ptr<Geometry> geometry;
-
-	// VS
-	ComPtr<ID3D11Buffer> _vertexBuffer;
-	ComPtr<ID3D11VertexShader> _vertexShader;
-	ComPtr<ID3D11Buffer> _indexBuffer;
-
-	// PS
-	ComPtr<ID3DBlob> _psBlob;
-	ComPtr<ID3D11PixelShader> _pixelShader;
-	ComPtr<ID3D11ShaderResourceView> _shaderResourceView;
+	std::shared_ptr<Geometry> _geometry;
+	std::shared_ptr<VertexBuffer<VertexTexData>> _vertexBuffer;
+	std::shared_ptr<IndexBuffer> _indexBuffer;
+	std::shared_ptr<VertexShader> _vertexShader;
+	std::shared_ptr<PixelShader> _pixelShader;
+	std::shared_ptr<Texture> _texture;
+	std::shared_ptr<ConstantBuffer<TransformData>> _constantBuffer;
 
 	// States
 	ComPtr<ID3D11RasterizerState> _rsState;
 	ComPtr<ID3D11BlendState> _blendState;
 	ComPtr<ID3D11SamplerState> _samplerState;
+
+	TransformData _constData;
 };
 

@@ -2,22 +2,16 @@
 class Geometry
 {
 public:
-	Geometry(const wchar_t* fileName);
+	Geometry();
 	~Geometry();
 
 	ComPtr<ID3D11InputLayout> GetComPtr() {
 		return _inputLayout;
 	}
-
-	ComPtr<ID3DBlob> GetBlob() {
-		return _blob;
-	}
-
-	void Create(const std::vector<D3D11_INPUT_ELEMENT_DESC>& layout);
+	void Create(const std::vector<D3D11_INPUT_ELEMENT_DESC>& layout, const ComPtr<ID3DBlob>& blob);
 
 private:
 	ComPtr<ID3D11InputLayout> _inputLayout;
-	ComPtr<ID3DBlob> _blob;
 	std::vector<D3D11_INPUT_ELEMENT_DESC> _layout;
 };
 

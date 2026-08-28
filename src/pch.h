@@ -15,10 +15,17 @@
 #include <map>
 using namespace Microsoft::WRL;
 
+// Define
+#define CHECK(hr) assert(SUCCEEDED(hr))
+
+// Engine
 #include "Graphics/Graphic.h"
 #include "Graphics/Geometry.h"
+#include "Graphics/VertexBuffer.h"
+#include "Graphics/IndexBuffer.h"
+#include "Graphics/Shader.h"
+#include "Graphics/Texture.h"
+#include "Graphics/ConstantBuffer.h"
 
 #include "Structs.h"
 #include "Engine.h"
-// Define
-#define CHECK(hr) assert(SUCCEEDED(hr))
