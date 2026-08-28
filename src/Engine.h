@@ -29,12 +29,13 @@ private:
 
 	// Geometry
 	std::shared_ptr<Geometry> _geometry;
-	std::shared_ptr<VertexBuffer<VertexTexData>> _vertexBuffer;
+	std::shared_ptr<VertexBuffer<VertexAnimData>> _vertexBuffer;
 	std::shared_ptr<IndexBuffer> _indexBuffer;
 	std::shared_ptr<VertexShader> _vertexShader;
 	std::shared_ptr<PixelShader> _pixelShader;
 	std::shared_ptr<Texture> _texture;
 	std::shared_ptr<ConstantBuffer<TransformData>> _constantBuffer;
+	std::shared_ptr<ConstantBuffer<BoneTransformData>> _boneConstantBuffer;
 
 	// States
 	ComPtr<ID3D11RasterizerState> _rsState;
@@ -42,8 +43,9 @@ private:
 	ComPtr<ID3D11SamplerState> _samplerState;
 
 	TransformData _constData;
+	BoneTransformData _boneConstData;
 
 	std::shared_ptr<Camera> _camera;
-	Model<VertexTexData> _model;
+	Model<VertexAnimData> _model;
 };
 

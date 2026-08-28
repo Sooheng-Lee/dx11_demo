@@ -5,6 +5,11 @@ Engine::Engine()
 	_constData.worldMat = DirectX::XMMatrixIdentity();
 	_constData.viewMat = DirectX::XMMatrixIdentity();
 	_constData.projMat = DirectX::XMMatrixIdentity();
+
+	for (DirectX::XMMATRIX& boneMat : _boneConstData.boneMats)
+	{
+		boneMat = DirectX::XMMatrixIdentity();
+	}
 }
 
 Engine::~Engine()
@@ -93,6 +98,7 @@ void Engine::Render()
 	Graphic::GetInstance()->GetDeviceContext()->RSSetState(_rsState.Get());
 	Graphic::GetInstance()->GetDeviceContext()->VSSetShader(_vertexShader->GetComPtr().Get(), nullptr, 0);
 	Graphic::GetInstance()->GetDeviceContext()->VSSetConstantBuffers(0, 1, _constantBuffer->GetComPtr().GetAddressOf());
+	Graphic::GetInstance()->GetDeviceContext()->VSSetConstantBuffers(1, 1, _boneConstantBuffer->GetComPtr().GetAddressOf());
 	Graphic::GetInstance()->GetDeviceContext()->PSSetShader(_pixelShader->GetComPtr().Get(), nullptr, 0);
 	Graphic::GetInstance()->GetDeviceContext()->PSSetSamplers(0, 1, _samplerState.GetAddressOf());
 	Graphic::GetInstance()->GetDeviceContext()->PSSetShaderResources(0, 1, _texture->GetComPtr().GetAddressOf());
@@ -110,15 +116,17 @@ void Engine::CreateInputLayout()
 	std::vector<D3D11_INPUT_ELEMENT_DESC>layout = {
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
 		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
-		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
+		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"BONEIDS", 0, DXGI_FORMAT_R32G32B32A32_UINT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"WEIGHTS", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 	};
 	_geometry->Create(layout, _vertexShader->GetBlob());
 }
 
 void Engine::CreateVertexBuffer()
 {
-	_model.Load("Data\\FBX\\syuen\\syuen.fbx");
-	_vertexBuffer = std::make_shared<VertexBuffer<VertexTexData>>();
+	_model.Load("Data\\FBX\\Man\\Man.fbx");
+	_vertexBuffer = std::make_shared<VertexBuffer<VertexAnimData>>();
 	/*
 	std::vector<VertexTexData> vertices;
 	vertices.resize(4);
@@ -146,26 +154,30 @@ void Engine::CreateIndexBuffer()
 void Engine::CreateVertexShader()
 {
 	_vertexShader = std::make_shared<VertexShader>();
-	_vertexShader->Create(L"src\\HLSL\\DefaultTexture.hlsl", "VS", "vs_5_0");
+	_vertexShader->Create(L"src\\HLSL\\DefaultAnim.hlsl", "VS", "vs_5_0");
 }
 
 void Engine::CreatePixelShader()
 {
 	_pixelShader = std::make_shared<PixelShader>();
-	_pixelShader->Create(L"src\\HLSL\\DefaultTexture.hlsl", "PS", "ps_5_0");
+	_pixelShader->Create(L"src\\HLSL\\DefaultAnim.hlsl", "PS", "ps_5_0");
 }
 
 void Engine::CreateSRV()
 {
 	
 	_texture = std::make_shared<Texture>();
-	_texture->Create(L"Data\\FBX\\syuen\\syuen_texture.png");
+	_texture->Create(L"Data\\FBX\\Man\\Man_texture_0.png");
 }
 
 void Engine::CreateConstantBuffer()
 {
 	_constantBuffer = std::make_shared<ConstantBuffer<TransformData>>();
 	_constantBuffer->Create();
+
+	_boneConstantBuffer = std::make_shared<ConstantBuffer<BoneTransformData>>();
+	_boneConstantBuffer->Create();
+	_boneConstantBuffer->Update(&_boneConstData);
 }
 
 void Engine::CreateRSState()

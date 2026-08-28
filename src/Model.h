@@ -18,13 +18,28 @@ public:
 		return _indices;
 	};
 
+	const std::unordered_map<std::string, BoneInfo>& GetBoneInfoMap() const
+	{
+		return _boneInfoMap;
+	}
+
+	UINT GetBoneCount() const
+	{
+		return _boneCount;
+	}
+
 private:
 	void ProcessNode(aiNode* node, const aiScene* scene);
 	void ProcessMesh(aiMesh* mesh, const aiScene* scene);
 	void SetVertexData(T& vertex, aiMesh* mesh, UINT idx);
+	template <typename TVertex>
+	void SetMeshVertexData(TVertex& vertex, aiMesh* mesh, UINT idx);
+	void ExtractBoneWeight(aiMesh* mesh, UINT baseVertex);
 private:
 	std::vector<T> _vertices;
 	std::vector<UINT> _indices;
+	std::unordered_map<std::string, BoneInfo> _boneInfoMap;
+	UINT _boneCount = 0;
 };
 
 template<typename T>
@@ -39,7 +54,6 @@ inline bool Model<T>::Load(const std::string& filePath)
 		aiProcess_FindDegenerates |
 		aiProcess_FindInvalidData |
 		aiProcess_ImproveCacheLocality |
-		aiProcess_PreTransformVertices |
 		aiProcess_ConvertToLeftHanded
 	);
 	if (scene == nullptr || scene->mRootNode == nullptr ||
@@ -78,6 +92,7 @@ template<typename T>
 inline void Model<T>::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 {
 	const UINT baseVertex = static_cast<UINT>(_vertices.size());
+	// Vertex
 	for (UINT idx = 0; idx < mesh->mNumVertices; ++idx)
 	{
 		T vertex{};
@@ -85,6 +100,7 @@ inline void Model<T>::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 		_vertices.push_back(vertex);
 	}
 
+	// Index
 	for (UINT idx = 0; idx < mesh->mNumFaces; ++idx)
 	{
 		const aiFace& face = mesh->mFaces[idx];
@@ -93,6 +109,12 @@ inline void Model<T>::ProcessMesh(aiMesh* mesh, const aiScene* scene)
 			_indices.push_back(baseVertex + face.mIndices[subIdx]);
 		}
 	}
+
+	// Bone
+	if constexpr (std::is_same_v<T, VertexAnimData>)
+	{
+		ExtractBoneWeight(mesh, baseVertex);
+	}
 }
 
 template<typename T>
@@ -100,46 +122,99 @@ inline void Model<T>::SetVertexData(T& vertex, aiMesh* mesh, UINT idx)
 {
 	if constexpr (std::is_same_v<T, VertexTexData>)
 	{
-		vertex.position = {
-			mesh->mVertices[idx].x,
-			mesh->mVertices[idx].y,
-			mesh->mVertices[idx].z
-		};
+		SetMeshVertexData(vertex, mesh, idx);
+	}
+	else if constexpr (std::is_same_v<T, VertexAnimData>)
+	{
+		SetMeshVertexData(vertex, mesh, idx);
+	}
+}
 
-		// normal check
-		if (mesh->HasNormals())
+template<typename T>
+template<typename TVertex>
+inline void Model<T>::SetMeshVertexData(TVertex& vertex, aiMesh* mesh, UINT idx)
+{
+	vertex.position = {
+		mesh->mVertices[idx].x,
+		mesh->mVertices[idx].y,
+		mesh->mVertices[idx].z
+	};
+
+	if (mesh->HasNormals())
+	{
+		vertex.normal =
 		{
-			vertex.normal =
-			{
-				mesh->mNormals[idx].x,
-				mesh->mNormals[idx].y,
-				mesh->mNormals[idx].z
-			};
+			mesh->mNormals[idx].x,
+			mesh->mNormals[idx].y,
+			mesh->mNormals[idx].z
+		};
+	}
+	else
+	{
+		vertex.normal =
+		{
+			0.0f,
+			0.0f,
+			0.0f
+		};
+	}
+
+	if (mesh->mTextureCoords[0] != nullptr)
+	{
+		vertex.uv =
+		{
+			mesh->mTextureCoords[0][idx].x,
+			mesh->mTextureCoords[0][idx].y
+		};
+	}
+	else
+	{
+		vertex.uv =
+		{
+			0.0f,
+			0.0f
+		};
+	}
+}
+template<typename T>
+inline void Model<T>::ExtractBoneWeight(aiMesh* mesh, UINT baseVertex)
+{
+	if constexpr (!std::is_same_v<T, VertexAnimData>) return;
+
+	for (UINT boneIdx = 0; boneIdx < mesh->mNumBones; ++boneIdx)
+	{
+		aiBone* bone = mesh->mBones[boneIdx];
+		std::string boneName = bone->mName.C_Str();
+		UINT boneID = 0;
+		// 처음 발견된 Bone
+		auto iter = _boneInfoMap.find(boneName);
+		if (iter == _boneInfoMap.end())
+		{
+			BoneInfo boneInfo;
+			boneInfo.id = static_cast<int>(_boneCount);
+			boneInfo.offsetMatrix = ConvertMatrix(bone->mOffsetMatrix);
+			_boneInfoMap[boneName] = boneInfo;
+
+			boneID = _boneCount;
+			++_boneCount;
 		}
 		else
 		{
-			vertex.normal =
-			{
-				0.0f,
-				0.0f,
-				0.0f
-			};
+			boneID = static_cast<UINT>(iter->second.id);
 		}
-		if (mesh->mTextureCoords[0] != nullptr)
+
+		// Vertex Weight
+		for (UINT weightIdx = 0; weightIdx < bone->mNumWeights; ++weightIdx)
 		{
-			vertex.uv =
+			const aiVertexWeight& weight = bone->mWeights[weightIdx];
+			UINT vertexIndex = baseVertex + weight.mVertexId;
+
+			if (vertexIndex >= _vertices.size())
 			{
-				mesh->mTextureCoords[0][idx].x,
-				mesh->mTextureCoords[0][idx].y
-			};
-		}
-		else
-		{
-			vertex.uv =
-			{
-				0.0f,
-				0.0f
-			};
+				continue;
+			}
+
+				_vertices[vertexIndex].AddBoneData(boneID,weight.mWeight);
 		}
 	}
 }

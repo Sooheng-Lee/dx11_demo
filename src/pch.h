@@ -15,16 +15,43 @@
 // STL
 #include <vector>
 #include <queue>
+#include <unordered_map>
 #include <map>
 
 #include <assimp/Importer.hpp>
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-
+#include <assimp/matrix4x4.h>
 using namespace Microsoft::WRL;
 
 // Define
 #define CHECK(hr) assert(SUCCEEDED(hr))
+
+inline DirectX::XMFLOAT4X4 ConvertMatrix(
+    const aiMatrix4x4& matrix)
+{
+    return DirectX::XMFLOAT4X4(
+        matrix.a1,
+        matrix.b1,
+        matrix.c1,
+        matrix.d1,
+
+        matrix.a2,
+        matrix.b2,
+        matrix.c2,
+        matrix.d2,
+
+        matrix.a3,
+        matrix.b3,
+        matrix.c3,
+        matrix.d3,
+
+        matrix.a4,
+        matrix.b4,
+        matrix.c4,
+        matrix.d4
+    );
+};
 
 // Client
 #include "Inputs/Keyboard.h"

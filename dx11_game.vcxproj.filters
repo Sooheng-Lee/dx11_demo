@@ -111,5 +111,6 @@
   <ItemGroup>
     <FxCompile Include="src\HLSL\DefaultColor.hlsl" />
     <FxCompile Include="src\HLSL\DefaultTexture.hlsl" />
+    <FxCompile Include="src\HLSL\DefaultAnim.hlsl" />
   </ItemGroup>
 </Project>
