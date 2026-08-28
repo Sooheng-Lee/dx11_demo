@@ -6,9 +6,13 @@ public:
 	~Client();
 	bool CreateClient(HINSTANCE hInstance, UINT width, UINT height, const wchar_t* className);
 	void Run();
+public:
+	Keyboard* GetKeyboardPtr() {
+		return _keyboard.get();
+	}
 
 protected:
-	virtual void Update() = 0;
+	virtual void Update();
 	virtual void Render() = 0;
 
 protected:
@@ -17,5 +21,7 @@ protected:
 	LPWSTR _className;
 	UINT _width;
 	UINT _height;
+
+	std::shared_ptr<Keyboard> _keyboard;
 };
 

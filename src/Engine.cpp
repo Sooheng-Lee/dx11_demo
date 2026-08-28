@@ -22,16 +22,39 @@ bool Engine::Init()
 	CreatePixelShader();
 	CreateSRV();
 	CreateConstantBuffer();
-	
 	CreateRSState();
+	_camera = std::make_shared<Camera>();
 	return true;
 }
 
 void Engine::Update()
 {
+	__super::Update();
+	DirectX::XMFLOAT3 camPosition = _camera->GetPosition();
+	if (_keyboard->GetKey('W'))
+	{
+		camPosition.z += 0.001f;
+		OutputDebugStringW(L"W\n");
+	}
+	if (_keyboard->GetKey('S'))
+	{
+		camPosition.z -= 0.001f;
+		OutputDebugStringW(L"S\n");
+	}
+	if (_keyboard->GetKey('D'))
+	{
+		camPosition.x += 0.001f;
+		OutputDebugStringW(L"D\n");
+	}
+	if (_keyboard->GetKey('A'))
+	{
+		camPosition.x -= 0.001f;
+		OutputDebugStringW(L"A\n");
+	}
+	_camera->SetPosition(camPosition.x, camPosition.y, camPosition.z);
 	static float angle = 0.001f;
 	angle += 0.0001f;
-	_constData.worldMat = DirectX::XMMatrixRotationZ(angle);
+	_constData.worldMat = DirectX::XMMatrixRotationZ(angle) * _camera->GetViewMat() * _camera->GetProjMat();
 	_constantBuffer->Update(&_constData);
 }
 

@@ -42,5 +42,7 @@ private:
 	ComPtr<ID3D11SamplerState> _samplerState;
 
 	TransformData _constData;
+
+	std::shared_ptr<Camera> _camera;
 };
 

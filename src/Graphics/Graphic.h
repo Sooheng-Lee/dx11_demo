@@ -18,6 +18,16 @@ public:
 		return _swapChain;
 	}
 
+	const UINT& GetWidth() const
+	{
+		return _width;
+	}
+
+	const UINT& GetHeight() const
+	{
+		return _height;
+	}
+
 private:
 	bool GetAdapters();
 	bool CreateDeviceAndSwapChain(HWND hwnd, UINT width, UINT height);
