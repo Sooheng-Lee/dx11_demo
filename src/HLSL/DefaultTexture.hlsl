@@ -8,12 +8,14 @@ cbuffer TransformData : register(b0)
 struct VS_INPUT
 {
     float3 position : POSITION;
+    float3 normal : NORMAL;
     float2 uv : TEXCOORD;
 };
 
 struct PS_INPUT
 {
     float4 position : SV_POSITION;
+    float3 normal : NORMAL;
     float2 uv : TEXCOORD;
 };
 
@@ -25,6 +27,7 @@ PS_INPUT VS(VS_INPUT input)
     PS_INPUT output;
     float4x4 vp = mul(view, proj);
     output.position = mul(mul(float4(input.position, 1.0f), world), vp);
+    output.normal = normalize(output.position.xyz);
     output.uv = input.uv;
     return output;
 }

@@ -16,6 +16,11 @@
 #include <vector>
 #include <queue>
 #include <map>
+
+#include <assimp/Importer.hpp>
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
 using namespace Microsoft::WRL;
 
 // Define
@@ -36,4 +41,5 @@ using namespace Microsoft::WRL;
 
 
 #include "Structs.h"
+#include "Model.h"
 #include "Engine.h"

@@ -32,7 +32,7 @@ inline VertexBuffer<T>::~VertexBuffer()
 template<typename T>
 void VertexBuffer<T>::Create(const std::vector<T>& vertices)
 {
-	_count = vertices.size();
+	_count = static_cast<UINT>(vertices.size());
 	D3D11_BUFFER_DESC desc = {};
 	{
 		desc.ByteWidth = _stride * _count;

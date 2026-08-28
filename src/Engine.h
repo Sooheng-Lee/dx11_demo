@@ -44,5 +44,6 @@ private:
 	TransformData _constData;
 
 	std::shared_ptr<Camera> _camera;
+	Model<VertexTexData> _model;
 };
 

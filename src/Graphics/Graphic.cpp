@@ -110,7 +110,7 @@ bool Graphic::CreateRenderTargetView(UINT width, UINT height)
 	viewport.TopLeftX = 0.0f;
 	viewport.TopLeftY = 0.0f;
 	viewport.MinDepth = 0.0f;
-	viewport.MaxDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
 	viewport.Width = static_cast<FLOAT>(width);
 	viewport.Height = static_cast<FLOAT>(height);
 	Graphic::GetInstance()->GetDeviceContext()->RSSetViewports(1, &viewport);

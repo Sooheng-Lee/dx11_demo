@@ -23,7 +23,10 @@ bool Engine::Init()
 	CreateSRV();
 	CreateConstantBuffer();
 	CreateRSState();
+	CreateBlendState();
+	CreateSamplerState();
 	_camera = std::make_shared<Camera>();
+	_camera->SetPosition(0.0f, 0.0f, -10.0f);
 	GameTimer::GetInstance()->ToggleState();
 	return true;
 }
@@ -32,7 +35,7 @@ void Engine::Update()
 {
 	__super::Update();
 	DirectX::XMFLOAT3 camPosition = _camera->GetPosition();
-	FLOAT moveSpeed = 500.0f;
+	FLOAT moveSpeed = 10.0f;
 	if (_keyboard->GetKey('W'))
 	{
 		camPosition.z += GameTimer::GetInstance()->GetDeltaTime() * moveSpeed;
@@ -72,7 +75,9 @@ void Engine::Update()
 	_camera->SetPosition(camPosition.x, camPosition.y, camPosition.z);
 	static float angle = 0.001f;
 	angle += GameTimer::GetInstance()->GetDeltaTime();
-	_constData.worldMat = DirectX::XMMatrixTranspose(DirectX::XMMatrixRotationZ(angle));
+	const DirectX::XMMATRIX worldMat =
+		DirectX::XMMatrixRotationY(angle);
+	_constData.worldMat = DirectX::XMMatrixTranspose(worldMat);
 	_constData.viewMat = DirectX::XMMatrixTranspose(_camera->GetViewMat());
 	_constData.projMat = DirectX::XMMatrixTranspose(_camera->GetProjMat());
 	_constantBuffer->Update(&_constData);
@@ -104,6 +109,7 @@ void Engine::CreateInputLayout()
 	_geometry = std::make_shared<Geometry>();
 	std::vector<D3D11_INPUT_ELEMENT_DESC>layout = {
 		{"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{"NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0},
 		{"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0}
 	};
 	_geometry->Create(layout, _vertexShader->GetBlob());
@@ -111,7 +117,9 @@ void Engine::CreateInputLayout()
 
 void Engine::CreateVertexBuffer()
 {
+	_model.Load("Data\\FBX\\syuen\\syuen.fbx");
 	_vertexBuffer = std::make_shared<VertexBuffer<VertexTexData>>();
+	/*
 	std::vector<VertexTexData> vertices;
 	vertices.resize(4);
 	{
@@ -124,14 +132,15 @@ void Engine::CreateVertexBuffer()
 		vertices[3].position = DirectX::XMFLOAT3(0.5f, -0.5f, 0.0f);
 		vertices[3].uv = DirectX::XMFLOAT2(1.0f, 1.0f);
 	}
-	_vertexBuffer->Create(vertices);
+	*/
+	_vertexBuffer->Create(_model.GetVertices());
 }
 
 void Engine::CreateIndexBuffer()
 {
 	_indexBuffer = std::make_shared<IndexBuffer>();
-	std::vector<UINT> indices = { 0, 1, 2, 2, 3, 0 };
-	_indexBuffer->Create(indices);
+	//std::vector<UINT> indices = { 0, 1, 2, 2, 3, 0 };
+	_indexBuffer->Create(_model.GetIndices());
 }
 
 void Engine::CreateVertexShader()
@@ -150,7 +159,7 @@ void Engine::CreateSRV()
 {
 	
 	_texture = std::make_shared<Texture>();
-	_texture->Create(L"Data\\Texture\\megaman.png");
+	_texture->Create(L"Data\\FBX\\syuen\\syuen_texture.png");
 }
 
 void Engine::CreateConstantBuffer()
@@ -162,6 +171,7 @@ void Engine::CreateConstantBuffer()
 void Engine::CreateRSState()
 {
 	CD3D11_RASTERIZER_DESC desc{ D3D11_DEFAULT };
+	desc.CullMode = D3D11_CULL_NONE;
 	HRESULT hr = Graphic::GetInstance()->GetDevice()->CreateRasterizerState(&desc, _rsState.GetAddressOf());
 	CHECK(hr);
 }

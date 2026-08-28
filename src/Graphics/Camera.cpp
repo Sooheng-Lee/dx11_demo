@@ -30,5 +30,6 @@ void Camera::UpdateMatrix()
 	DirectX::XMVECTOR target = DirectX::XMVectorAdd(pos, forward);
 
 	_viewMat = DirectX::XMMatrixLookAtLH(pos, target, up);
-	_projMat = DirectX::XMMatrixPerspectiveFovLH(_fovAngle / 360.0f * DirectX::XM_2PI, Graphic::GetInstance()->GetWidth() / Graphic::GetInstance()->GetHeight(), 0.0001f, 1000.0f);
+	const FLOAT aspectRatio = static_cast<FLOAT>(Graphic::GetInstance()->GetWidth()) / static_cast<FLOAT>(Graphic::GetInstance()->GetHeight());
+	_projMat = DirectX::XMMatrixPerspectiveFovLH(_fovAngle / 360.0f * DirectX::XM_2PI, aspectRatio, 0.1f, 1000.0f);
 }

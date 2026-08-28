@@ -10,7 +10,16 @@ struct VertexColorData
 struct VertexTexData
 {
 	DirectX::XMFLOAT3 position;
+	DirectX::XMFLOAT3 normal;
 	DirectX::XMFLOAT2 uv;
+};
+
+template <typename T>
+struct MeshData
+{
+public:
+	std::vector<T> vertices;
+	std::vector<UINT> indices;
 };
 
 struct TransformData

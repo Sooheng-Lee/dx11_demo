@@ -3,7 +3,7 @@
 
 Keyboard::Keyboard()
 {
-	_lastEvent;
+	_lastEvent = KeyboardEvent();
 }
 
 Keyboard::~Keyboard()
@@ -38,6 +38,8 @@ void Keyboard::AddKeyboardEvent(const UCHAR keyCode, eKeyboardState state)
 KeyboardEvent Keyboard::GetKeyboardEvent()
 {
 	if (_events.empty()) {
+		if (_lastEvent.state == Pressed)
+			return _lastEvent;
 		_lastEvent = KeyboardEvent();
 		return KeyboardEvent();
 	};
