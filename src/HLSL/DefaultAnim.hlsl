@@ -12,6 +12,15 @@ cbuffer BoneBuffer : register(b1)
     matrix bones[MAX_BONES];
 };
 
+cbuffer LightBuffer : register(b0)
+{
+    float4 directionalLightDirection;
+    float4 directionalLightColor;
+    float4 ambientColor;
+    uint useLight;
+    float3 lightPadding;
+};
+
 Texture2D diffuseTexture : register(t0);
 SamplerState samplerState : register(s0);
 
@@ -108,6 +117,16 @@ float4 PS(VS_OUTPUT input) : SV_TARGET
             samplerState,
             input.uv
         );
+
+    if (useLight != 0)
+    {
+        float3 normal = normalize(input.normal);
+        float3 lightDirection = normalize(-directionalLightDirection.xyz);
+        float diffuseFactor = saturate(dot(normal, lightDirection));
+        float3 lightColor = ambientColor.rgb + directionalLightColor.rgb * diffuseFactor;
+
+        color.rgb *= saturate(lightColor);
+    }
 
     return color;
 }

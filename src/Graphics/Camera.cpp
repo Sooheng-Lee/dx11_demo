@@ -6,7 +6,7 @@ Camera::Camera()
 	_transformMat = DirectX::XMMatrixIdentity();
 	_viewMat = DirectX::XMMatrixIdentity();
 	_projMat = DirectX::XMMatrixIdentity();
-	_fovAngle = 90.0f;
+	_fovAngle = 75.0f;
 	UpdateMatrix();
 }
 

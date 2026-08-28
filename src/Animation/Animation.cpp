@@ -1,9 +1,9 @@
-#include "pch.h"
+#include "..\pch.h"
 
 Animation::Animation()
 {
 	DirectX::XMStoreFloat4x4(&_globalInverseTransform, DirectX::XMMatrixIdentity());
-	SetIdentityBoneTransforms();
+	SetIdentityBoneTransforms(_boneTransformData);
 }
 
 bool Animation::Load(
@@ -45,29 +45,58 @@ bool Animation::Load(
 	DirectX::XMMATRIX globalInverseTransform = DirectX::XMMatrixInverse(nullptr, rootTransform);
 	DirectX::XMStoreFloat4x4(&_globalInverseTransform, globalInverseTransform);
 
-	SetIdentityBoneTransforms();
-	CalculateBoneTransform(_rootNode, DirectX::XMMatrixIdentity());
+	SetIdentityBoneTransforms(_boneTransformData);
+	CalculateBoneTransform(_rootNode, DirectX::XMMatrixIdentity(), _currentTime, _boneTransformData);
 
 	return true;
 }
 
 void Animation::Update(float deltaTime)
 {
-	if (_duration <= 0.0)
-	{
-		return;
-	}
-
-	_currentTime += static_cast<double>(deltaTime) * _ticksPerSecond;
-	_currentTime = std::fmod(_currentTime, _duration);
-
-	CalculateBoneTransform(_rootNode, DirectX::XMMatrixIdentity());
+	_currentTime = AdvanceTime(_currentTime, deltaTime);
+	Sample(_currentTime, _boneTransformData);
 }
 
 void Animation::Reset()
 {
 	_currentTime = 0.0;
-	CalculateBoneTransform(_rootNode, DirectX::XMMatrixIdentity());
+	Sample(_currentTime, _boneTransformData);
+}
+
+double Animation::AdvanceTime(double animationTime, float deltaTime) const
+{
+	if (_duration <= 0.0)
+	{
+		return 0.0;
+	}
+
+	animationTime += static_cast<double>(deltaTime) * _ticksPerSecond;
+	animationTime = std::fmod(animationTime, _duration);
+
+	if (animationTime < 0.0)
+	{
+		animationTime += _duration;
+	}
+
+	return animationTime;
+}
+
+void Animation::Sample(double animationTime, BoneTransformData& outBoneTransformData) const
+{
+	SetIdentityBoneTransforms(outBoneTransformData);
+
+	if (_duration <= 0.0)
+	{
+		return;
+	}
+
+	animationTime = std::fmod(animationTime, _duration);
+	if (animationTime < 0.0)
+	{
+		animationTime += _duration;
+	}
+
+	CalculateBoneTransform(_rootNode, DirectX::XMMatrixIdentity(), animationTime, outBoneTransformData);
 }
 
 void Animation::ReadHierarchyData(AnimationNodeData& dest, const aiNode* src)
@@ -125,14 +154,18 @@ void Animation::ReadChannels(const aiAnimation* animation)
 	}
 }
 
-void Animation::CalculateBoneTransform(const AnimationNodeData& node, const DirectX::XMMATRIX& parentTransform)
+void Animation::CalculateBoneTransform(
+	const AnimationNodeData& node,
+	const DirectX::XMMATRIX& parentTransform,
+	double animationTime,
+	BoneTransformData& outBoneTransformData) const
 {
 	DirectX::XMMATRIX nodeTransform = DirectX::XMLoadFloat4x4(&node.transform);
 	const NodeAnimChannel* channel = FindChannel(node.name);
 
 	if (channel != nullptr)
 	{
-		nodeTransform = channel->GetLocalTransform(_currentTime);
+		nodeTransform = channel->GetLocalTransform(animationTime);
 	}
 
 	DirectX::XMMATRIX globalTransform = nodeTransform * parentTransform;
@@ -145,12 +178,12 @@ void Animation::CalculateBoneTransform(const AnimationNodeData& node, const Dire
 		DirectX::XMMATRIX globalInverseTransform = DirectX::XMLoadFloat4x4(&_globalInverseTransform);
 		DirectX::XMMATRIX finalTransform = offsetTransform * globalTransform * globalInverseTransform;
 
-		_boneTransformData.boneMats[boneInfo.id] = DirectX::XMMatrixTranspose(finalTransform);
+		outBoneTransformData.boneMats[boneInfo.id] = DirectX::XMMatrixTranspose(finalTransform);
 	}
 
 	for (const AnimationNodeData& child : node.children)
 	{
-		CalculateBoneTransform(child, globalTransform);
+		CalculateBoneTransform(child, globalTransform, animationTime, outBoneTransformData);
 	}
 }
 
@@ -165,9 +198,9 @@ const NodeAnimChannel* Animation::FindChannel(const std::string& nodeName) const
 	return &iter->second;
 }
 
-void Animation::SetIdentityBoneTransforms()
+void Animation::SetIdentityBoneTransforms(BoneTransformData& outBoneTransformData)
 {
-	for (DirectX::XMMATRIX& boneMat : _boneTransformData.boneMats)
+	for (DirectX::XMMATRIX& boneMat : outBoneTransformData.boneMats)
 	{
 		boneMat = DirectX::XMMatrixIdentity();
 	}
@@ -307,5 +340,5 @@ float NodeAnimChannel::GetScaleFactor(double lastTime, double nextTime, double a
 		return 0.0f;
 	}
 
-	return static_cast<float>((animationTime - lastTime) / frameDelta);
+	return std::clamp(static_cast<float>((animationTime - lastTime) / frameDelta), 0.0f, 1.0f);
 }

@@ -57,18 +57,28 @@ public:
 
 	void Update(float deltaTime);
 	void Reset();
+	double AdvanceTime(double animationTime, float deltaTime) const;
+	void Sample(double animationTime, BoneTransformData& outBoneTransformData) const;
 
 	const BoneTransformData& GetBoneTransformData() const
 	{
 		return _boneTransformData;
 	}
 
+	double GetDuration() const { return _duration; }
+	double GetTicksPerSecond() const { return _ticksPerSecond; }
+	bool IsValid() const { return _duration > 0.0 && _boneCount > 0; }
+
 private:
 	void ReadHierarchyData(AnimationNodeData& dest, const aiNode* src);
 	void ReadChannels(const aiAnimation* animation);
-	void CalculateBoneTransform(const AnimationNodeData& node, const DirectX::XMMATRIX& parentTransform);
+	void CalculateBoneTransform(
+		const AnimationNodeData& node,
+		const DirectX::XMMATRIX& parentTransform,
+		double animationTime,
+		BoneTransformData& outBoneTransformData) const;
 	const NodeAnimChannel* FindChannel(const std::string& nodeName) const;
-	void SetIdentityBoneTransforms();
+	static void SetIdentityBoneTransforms(BoneTransformData& outBoneTransformData);
 
 private:
 	double _duration = 0.0;

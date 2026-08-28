@@ -67,6 +67,15 @@ struct BoneTransformData
 	DirectX::XMMATRIX boneMats[128];
 };
 
+struct LightData
+{
+	DirectX::XMFLOAT4 directionalLightDirection;
+	DirectX::XMFLOAT4 directionalLightColor;
+	DirectX::XMFLOAT4 ambientColor;
+	UINT useLight = 1;
+	DirectX::XMFLOAT3 padding = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+};
+
 struct BoneInfo
 {
 	UINT id = -1;

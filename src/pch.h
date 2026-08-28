@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <cmath>
+#include <algorithm>
 
 // DX
 #include <d3d11.h>
@@ -70,5 +71,11 @@ inline DirectX::XMFLOAT4X4 ConvertMatrix(
 
 #include "Structs.h"
 #include "Model.h"
-#include "Animation.h"
+#include "Animation/Animation.h"
+#include "Animation/Animator.h"
+#include "Light/DirectionalLight.h"
+#include "Light/PointLight.h"
+#include "Mesh/SkeletalMesh.h"
+#include "Mesh/StaticMesh.h"
+#include "GameObject.h"
 #include "Engine.h"
