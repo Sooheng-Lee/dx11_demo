@@ -12,8 +12,7 @@ protected:
 	virtual void Render() override;
 
 private:
-	bool GetAdapters();
-	bool CreateDeviceAndSwapChain();
+
 	bool CreateRenderTargetView();
 
 	void CreateInputLayout();
@@ -21,21 +20,21 @@ private:
 	void CreateIndexBuffer();
 	void CreateVertexShader();
 	void CreatePixelShader();
-	
+	void CreateSRV();
+
+	void CreateRSState();
+	void CreateBlendState();
+	void CreateSamplerState();
+
 	void RenderBegin();
 	void RenderEnd();
 private:
 	// Graphics
-	std::vector<ComPtr<IDXGIAdapter>> _adapters;
-	ComPtr<ID3D11Device> _device;
-	ComPtr<ID3D11DeviceContext> _deviceContext;
-	ComPtr<IDXGISwapChain> _swapChain;
 	ComPtr<ID3D11RenderTargetView> _renderTargetView;
 	ComPtr<ID3D11DepthStencilView> _depthStencilView;
 
 	// Geometry
-	ComPtr<ID3D11InputLayout> _inputLayout;
-	ComPtr<ID3DBlob> _vsBlob;
+	std::shared_ptr<Geometry> geometry;
 
 	// VS
 	ComPtr<ID3D11Buffer> _vertexBuffer;
@@ -45,5 +44,11 @@ private:
 	// PS
 	ComPtr<ID3DBlob> _psBlob;
 	ComPtr<ID3D11PixelShader> _pixelShader;
+	ComPtr<ID3D11ShaderResourceView> _shaderResourceView;
+
+	// States
+	ComPtr<ID3D11RasterizerState> _rsState;
+	ComPtr<ID3D11BlendState> _blendState;
+	ComPtr<ID3D11SamplerState> _samplerState;
 };
 

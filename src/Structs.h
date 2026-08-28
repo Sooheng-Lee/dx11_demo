@@ -6,3 +6,9 @@ struct VertexColorData
 	DirectX::XMFLOAT3 position;
 	DirectX::XMFLOAT4 color;
 };
+
+struct VertexTexData
+{
+	DirectX::XMFLOAT3 position;
+	DirectX::XMFLOAT2 uv;
+};
