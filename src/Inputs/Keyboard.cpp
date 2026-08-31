@@ -4,6 +4,8 @@
 Keyboard::Keyboard()
 {
 	_lastEvent = KeyboardEvent();
+	_keyStates.fill(eKeyboardState::None);
+	_keyPressed.fill(false);
 }
 
 Keyboard::~Keyboard()
@@ -35,6 +37,45 @@ void Keyboard::AddKeyboardEvent(const UCHAR keyCode, eKeyboardState state)
 	_events.push(event);
 }
 
+void Keyboard::Update()
+{
+	for (UINT idx = 0; idx < KEY_COUNT; ++idx)
+	{
+		if (_keyStates[idx] == eKeyboardState::Down)
+		{
+			_keyStates[idx] = eKeyboardState::Pressed;
+		}
+		else if (_keyStates[idx] == eKeyboardState::Up)
+		{
+			_keyStates[idx] = eKeyboardState::None;
+		}
+	}
+
+	while (!_events.empty())
+	{
+		KeyboardEvent event = _events.front();
+		_events.pop();
+		_lastEvent = event;
+
+		const UINT keyCode = event.keyCode;
+		if (keyCode >= KEY_COUNT)
+		{
+			continue;
+		}
+
+		if (event.state == eKeyboardState::Down || event.state == eKeyboardState::Pressed)
+		{
+			_keyStates[keyCode] = _keyPressed[keyCode] ? eKeyboardState::Pressed : eKeyboardState::Down;
+			_keyPressed[keyCode] = true;
+		}
+		else if (event.state == eKeyboardState::Up || event.state == eKeyboardState::None)
+		{
+			_keyStates[keyCode] = _keyPressed[keyCode] ? eKeyboardState::Up : eKeyboardState::None;
+			_keyPressed[keyCode] = false;
+		}
+	}
+}
+
 KeyboardEvent Keyboard::GetKeyboardEvent()
 {
 	if (_events.empty()) {
@@ -51,15 +92,16 @@ KeyboardEvent Keyboard::GetKeyboardEvent()
 
 bool Keyboard::GetKeyDown(UINT keyCode)
 {
-	return _lastEvent.state == eKeyboardState::Down && _lastEvent.keyCode == keyCode;
+	return keyCode < KEY_COUNT && _keyStates[keyCode] == eKeyboardState::Down;
 }
 
 bool Keyboard::GetKey(UINT keyCode)
 {
-	return _lastEvent.state == eKeyboardState::Pressed && _lastEvent.keyCode == keyCode;
+	return keyCode < KEY_COUNT
+		&& (_keyStates[keyCode] == eKeyboardState::Down || _keyStates[keyCode] == eKeyboardState::Pressed);
 }
 
 bool Keyboard::GetKeyUp(UINT keyCode)
 {
-	return _lastEvent.state == eKeyboardState::Up && _lastEvent.keyCode == keyCode;
+	return keyCode < KEY_COUNT && _keyStates[keyCode] == eKeyboardState::Up;
 }

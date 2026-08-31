@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "GameObject.h"
 
 GameObject::GameObject()
 {
@@ -14,10 +15,16 @@ GameObject::GameObject()
 
 bool GameObject::Init(
 	const std::string& modelPath,
-	const std::wstring& texturePath)
+	const std::wstring& texturePath,
+	const std::wstring& normalTexturePath,
+	const std::wstring& roughnessTexturePath,
+	const std::wstring& metallicTexturePath)
 {
 	_skeletalMesh = std::make_shared<SkeletalMesh>();
-	_skeletalMesh->Init(modelPath, texturePath);
+	_skeletalMesh->Init(modelPath, texturePath, normalTexturePath, roughnessTexturePath, metallicTexturePath);
+	_lightConstData.useNormalTexture = normalTexturePath.empty() ? 0 : 1;
+	_lightConstData.useRoughnessTexture = roughnessTexturePath.empty() ? 0 : 1;
+	_lightConstData.useMetallicTexture = metallicTexturePath.empty() ? 0 : 1;
 	CreateConstantBuffer();
 
 	return true;
@@ -90,9 +97,64 @@ void GameObject::SetLightEnabled(bool enabled)
 	}
 }
 
+void GameObject::SetNormalTextureEnabled(bool enabled)
+{
+	_lightConstData.useNormalTexture = enabled ? 1 : 0;
+
+	if (_skeletalMesh != nullptr)
+	{
+		_skeletalMesh->SetNormalTextureEnabled(enabled);
+	}
+
+	if (_lightConstantBuffer != nullptr)
+	{
+		_lightConstantBuffer->Update(&_lightConstData);
+	}
+}
+
+void GameObject::SetRoughnessTextureEnabled(bool enabled)
+{
+	_lightConstData.useRoughnessTexture = enabled ? 1 : 0;
+
+	if (_skeletalMesh != nullptr)
+	{
+		_skeletalMesh->SetRoughnessTextureEnabled(enabled);
+	}
+
+	if (_lightConstantBuffer != nullptr)
+	{
+		_lightConstantBuffer->Update(&_lightConstData);
+	}
+}
+
+void GameObject::SetMetallicTextureEnabled(bool enabled)
+{
+	_lightConstData.useMetallicTexture = enabled ? 1 : 0;
+
+	if (_skeletalMesh != nullptr)
+	{
+		_skeletalMesh->SetMetallicTextureEnabled(enabled);
+	}
+
+	if (_lightConstantBuffer != nullptr)
+	{
+		_lightConstantBuffer->Update(&_lightConstData);
+	}
+}
+
 void GameObject::ToggleLightEnabled()
 {
 	SetLightEnabled(!IsLightEnabled());
+}
+
+void GameObject::SetCollider(const std::shared_ptr<Collider>& collider)
+{
+	_collider = collider;
+}
+
+void GameObject::ToggleColliderVisible()
+{
+	SetColliderVisible(!_colliderVisible);
 }
 
 void GameObject::Move(const DirectX::XMFLOAT3& direction, float deltaTime)
@@ -117,11 +179,13 @@ void GameObject::Update(float deltaTime, const DirectX::XMMATRIX& viewMat, const
 {
 	UpdateRotation(deltaTime);
 
-	const DirectX::XMMATRIX worldMat =
+	_worldMat =
 		DirectX::XMMatrixRotationY(_rotationY) *
 		DirectX::XMMatrixTranslation(_position.x, _position.y, _position.z);
+	_viewMat = viewMat;
+	_projMat = projMat;
 
-	_constData.worldMat = DirectX::XMMatrixTranspose(worldMat);
+	_constData.worldMat = DirectX::XMMatrixTranspose(_worldMat);
 	_constData.viewMat = DirectX::XMMatrixTranspose(viewMat);
 	_constData.projMat = DirectX::XMMatrixTranspose(projMat);
 	_constantBuffer->Update(&_constData);
@@ -152,6 +216,11 @@ void GameObject::Render(
 	FLOAT blendFactor[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 	Graphic::GetInstance()->GetDeviceContext()->OMSetBlendState(blendState, blendFactor, 0xFFFFFFFF);
 	_skeletalMesh->Draw();
+
+	if (_colliderVisible && _collider != nullptr)
+	{
+		_collider->Render(_worldMat, _viewMat, _projMat);
+	}
 }
 
 void GameObject::CreateConstantBuffer()

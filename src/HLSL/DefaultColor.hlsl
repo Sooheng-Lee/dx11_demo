@@ -1,3 +1,10 @@
+cbuffer TransformData : register(b0)
+{
+    float4x4 world;
+    float4x4 view;
+    float4x4 proj;
+};
+
 struct VS_INPUT
 {
     float3 position : POSITION;
@@ -13,7 +20,9 @@ struct PS_INPUT
 PS_INPUT VS(VS_INPUT input)
 {
     PS_INPUT output;
-    output.position = float4(input.position, 1);
+    float4 worldPosition = mul(float4(input.position, 1.0f), world);
+    float4 viewPosition = mul(worldPosition, view);
+    output.position = mul(viewPosition, proj);
     output.color = input.color;
     return output;
 }

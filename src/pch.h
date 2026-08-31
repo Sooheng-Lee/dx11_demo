@@ -17,6 +17,7 @@
 // STL
 #include <vector>
 #include <queue>
+#include <array>
 #include <unordered_map>
 #include <map>
 
@@ -77,5 +78,9 @@ inline DirectX::XMFLOAT4X4 ConvertMatrix(
 #include "Light/PointLight.h"
 #include "Mesh/SkeletalMesh.h"
 #include "Mesh/StaticMesh.h"
+#include "Collider/Collider.h"
+#include "Collider/BoxCollider.h"
+#include "Collider/SphereCollider.h"
+#include "Collider/CapsuleCollider.h"
 #include "GameObject.h"
 #include "Engine.h"

@@ -69,11 +69,13 @@ struct BoneTransformData
 
 struct LightData
 {
-	DirectX::XMFLOAT4 directionalLightDirection;
-	DirectX::XMFLOAT4 directionalLightColor;
-	DirectX::XMFLOAT4 ambientColor;
+	DirectX::XMFLOAT4 directionalLightDirection = DirectX::XMFLOAT4(0.3f, -1.0f, 0.3f, 0.0f);
+	DirectX::XMFLOAT4 directionalLightColor = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	DirectX::XMFLOAT4 ambientColor = DirectX::XMFLOAT4(0.25f, 0.25f, 0.25f, 1.0f);
 	UINT useLight = 1;
-	DirectX::XMFLOAT3 padding = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+	UINT useNormalTexture = 0;
+	UINT useRoughnessTexture = 0;
+	UINT useMetallicTexture = 0;
 };
 
 struct BoneInfo

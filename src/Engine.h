@@ -23,5 +23,6 @@ private:
 
 	std::shared_ptr<Camera> _camera;
 	std::shared_ptr<GameObject> _character;
+	std::shared_ptr<GameObject> _woman;
 };
 

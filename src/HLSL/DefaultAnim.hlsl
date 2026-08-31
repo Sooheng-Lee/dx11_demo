@@ -18,10 +18,15 @@ cbuffer LightBuffer : register(b0)
     float4 directionalLightColor;
     float4 ambientColor;
     uint useLight;
-    float3 lightPadding;
+    uint useNormalTexture;
+    uint useRoughnessTexture;
+    uint useMetallicTexture;
 };
 
 Texture2D diffuseTexture : register(t0);
+Texture2D normalTexture : register(t1);
+Texture2D roughnessTexture : register(t2);
+Texture2D metallicTexture : register(t3);
 SamplerState samplerState : register(s0);
 
 struct VS_INPUT
@@ -37,6 +42,7 @@ struct VS_INPUT
 struct VS_OUTPUT
 {
     float4 position : SV_POSITION;
+    float3 worldPosition : POSITION;
     float3 normal : NORMAL;
     float2 uv : TEXCOORD0;
 };
@@ -90,6 +96,9 @@ VS_OUTPUT VS(VS_INPUT input)
     float4 viewPosition =
         mul(worldPosition, view);
 
+    output.worldPosition =
+        worldPosition.xyz;
+
     output.position =
         mul(
             viewPosition,
@@ -121,11 +130,29 @@ float4 PS(VS_OUTPUT input) : SV_TARGET
     if (useLight != 0)
     {
         float3 normal = normalize(input.normal);
+        if (useNormalTexture != 0)
+        {
+            normal = normalize(normalTexture.Sample(samplerState, input.uv).xyz * 2.0f - 1.0f);
+        }
+
         float3 lightDirection = normalize(-directionalLightDirection.xyz);
-        float diffuseFactor = saturate(dot(normal, lightDirection));
+        float diffuseFactor = saturate(dot(normal, lightDirection) * 0.5f + 0.5f);
         float3 lightColor = ambientColor.rgb + directionalLightColor.rgb * diffuseFactor;
 
+        float roughness = useRoughnessTexture != 0
+            ? roughnessTexture.Sample(samplerState, input.uv).r
+            : 1.0f;
+        float metallic = useMetallicTexture != 0
+            ? metallicTexture.Sample(samplerState, input.uv).r
+            : 0.0f;
+        float3 viewDirection = normalize(-input.worldPosition);
+        float3 halfVector = normalize(lightDirection + viewDirection);
+        float specularPower = lerp(128.0f, 8.0f, saturate(roughness));
+        float specularFactor = pow(saturate(dot(normal, halfVector)), specularPower);
+        float3 specularColor = lerp(float3(0.04f, 0.04f, 0.04f), color.rgb, saturate(metallic));
+
         color.rgb *= saturate(lightColor);
+        color.rgb += specularColor * directionalLightColor.rgb * specularFactor * (1.0f - saturate(roughness));
     }
 
     return color;

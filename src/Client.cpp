@@ -66,7 +66,7 @@ Client::~Client()
 void Client::Update()
 {
 	GameTimer::GetInstance()->Update();
-	_keyboard->GetKeyboardEvent();
+	_keyboard->Update();
 }
 
 bool Client::CreateClient(HINSTANCE hInstance, UINT width, UINT height, const wchar_t* className)

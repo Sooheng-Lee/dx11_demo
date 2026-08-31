@@ -24,12 +24,17 @@ public:
 	Keyboard();
 	~Keyboard();
 	void AddKeyboardEvent(const UCHAR keyCode, eKeyboardState state);
+	void Update();
 	KeyboardEvent GetKeyboardEvent();
 	bool GetKeyDown(UINT keyCode);
 	bool GetKey(UINT keyCode);
 	bool GetKeyUp(UINT keyCode);
 private:
+	static constexpr UINT KEY_COUNT = 256;
+
 	std::queue<KeyboardEvent> _events;
 	KeyboardEvent _lastEvent;
+	std::array<eKeyboardState, KEY_COUNT> _keyStates;
+	std::array<bool, KEY_COUNT> _keyPressed;
 };
 
