@@ -24,20 +24,13 @@ private:
 	void RenderMapObjects();
 	void CreateEnemyObjects();
 	void UpdateEnemies(float deltaTime);
-	void ResolveEnemyOverlaps();
 	void RenderEnemyObjects();
-	void CreateAttackCollider();
-	void UpdateAttackCollider(float deltaTime);
-	void ActivateAttackCollider();
-	void ApplyAttackColliderToEnemies();
-	DirectX::XMMATRIX GetAttackColliderWorldMatrix() const;
-	void RenderAttackCollider();
 	bool IsCharacterColliding() const;
 	bool IsCollidingWithObject(const Collider& collider, const DirectX::XMMATRIX& worldMat) const;
 	void ResolveCharacterCollision(const DirectX::XMFLOAT3& prevPosition, const DirectX::XMFLOAT3& moveDirection);
 	void KnockBackCharacterFrom(const DirectX::XMFLOAT3& sourcePosition);
 	void UpdateCamera();
-	void UpdateCharacterAnimation(bool isMoving, float deltaTime);
+	void UpdateCharacterAnimation(bool attackPressed, bool isMoving, float deltaTime);
 
 private:
 	struct MapObject
@@ -67,18 +60,5 @@ private:
 
 	std::shared_ptr<Camera> _camera;
 	std::shared_ptr<PlayerCharacter> _character;
-	std::shared_ptr<BoxCollider> _attackCollider;
-	enum class eAttackState
-	{
-		None,
-		Punch1,
-		Punch2
-	};
-	eAttackState _attackState = eAttackState::None;
-	float _attackElapsed = 0.0f;
-	float _punchExtendTime = 20.0f / 30.0f;
-	float _attackColliderActiveTime = 0.0f;
-	float _attackColliderDuration = 0.12f;
-	bool _attackHitTriggered = false;
 };
 

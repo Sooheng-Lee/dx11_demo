@@ -198,7 +198,10 @@ void GameObject::Move(const DirectX::XMFLOAT3& direction, float deltaTime)
 
 void GameObject::Update(float deltaTime, const DirectX::XMMATRIX& viewMat, const DirectX::XMMATRIX& projMat)
 {
-	UpdateRotation(deltaTime);
+	if (CanUpdateRotation())
+	{
+		UpdateRotation(deltaTime);
+	}
 
 	_worldMat = GetWorldMatrix();
 	_viewMat = viewMat;

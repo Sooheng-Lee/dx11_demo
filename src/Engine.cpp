@@ -48,7 +48,7 @@ bool Engine::Init()
 	womanCollider->SetCenter(DirectX::XMFLOAT3(0.0f, 0.9f, 0.0f));
 	womanCollider->Init();
 	_character->SetCollider(womanCollider);
-	CreateAttackCollider();
+	_character->CreateAttackCollider();
 	CreateEnemyObjects();
 
 	_camera = std::make_shared<Camera>();
@@ -112,8 +112,10 @@ void Engine::Update()
 
 	if (_character != nullptr)
 	{
+		const bool attackPressed = _keyboard->GetKeyDown('I');
+		const bool attackMovementLocked = _character->IsAttacking() || attackPressed;
 		const bool isMoving = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(moveDirection)) > 0.0001f;
-		if (isMoving)
+		if (isMoving && !_character->IsKnockingBack() && !attackMovementLocked)
 		{
 			const DirectX::XMFLOAT3 prevPosition = _character->GetPosition();
 			moveDirection = DirectX::XMVector3Normalize(moveDirection);
@@ -126,8 +128,30 @@ void Engine::Update()
 				ResolveCharacterCollision(prevPosition, moveDirectionFloat);
 			}
 		}
+		else if (isMoving && !_character->IsKnockingBack() && attackMovementLocked)
+		{
+			moveDirection = DirectX::XMVector3Normalize(moveDirection);
+			DirectX::XMFLOAT3 moveDirectionFloat;
+			DirectX::XMStoreFloat3(&moveDirectionFloat, moveDirection);
 
-		UpdateCharacterAnimation(isMoving, GameTimer::GetInstance()->GetDeltaTime());
+			const DirectX::XMFLOAT3 forward = _character->GetForwardVector();
+			const float forwardDot =
+				forward.x * moveDirectionFloat.x +
+				forward.z * moveDirectionFloat.z;
+
+			if (forwardDot >= 0.75f)
+			{
+				const DirectX::XMFLOAT3 prevPosition = _character->GetPosition();
+				_character->MoveForwardDuringAttack(GameTimer::GetInstance()->GetDeltaTime());
+
+				if (IsCharacterColliding())
+				{
+					_character->SetPosition(prevPosition);
+				}
+			}
+		}
+
+		UpdateCharacterAnimation(attackPressed, isMoving, GameTimer::GetInstance()->GetDeltaTime());
 		UpdateCamera();
 		_character->Update(
 			GameTimer::GetInstance()->GetDeltaTime(),
@@ -149,7 +173,10 @@ void Engine::Render()
 		_character->Render(_rsState.Get(), _blendState.Get(), _samplerState.Get());
 	}
 	RenderEnemyObjects();
-	RenderAttackCollider();
+	if (_character != nullptr && _camera != nullptr)
+	{
+		_character->RenderAttackCollider(_camera->GetViewMat(), _camera->GetProjMat());
+	}
 
 	Graphic::GetInstance()->RenderEnd();
 }
@@ -374,118 +401,19 @@ void Engine::CreateEnemyObjects()
 
 void Engine::UpdateEnemies(float deltaTime)
 {
-	for (const std::shared_ptr<EnemyObject>& enemy : _enemies)
-	{
-		if (enemy != nullptr)
-		{
-			enemy->Update(deltaTime);
-		}
-	}
-
 	if (_character == nullptr)
 	{
 		return;
 	}
 
-	constexpr float enemyDetectRange = 4.0f;
-	constexpr float enemyAttackRange = 1.35f;
-	const DirectX::XMFLOAT3 characterPosition = _character->GetPosition();
-	const DirectX::XMVECTOR characterVector = DirectX::XMLoadFloat3(&characterPosition);
-	for (const std::shared_ptr<EnemyObject>& enemy : _enemies)
-	{
-		if (enemy == nullptr)
+	EnemyObject::UpdateEnemies(
+		_enemies,
+		_character->GetPosition(),
+		deltaTime,
+		[this](const DirectX::XMFLOAT3& sourcePosition)
 		{
-			continue;
-		}
-
-		const DirectX::XMFLOAT3 enemyPosition = enemy->GetPosition();
-		const DirectX::XMVECTOR enemyVector = DirectX::XMLoadFloat3(&enemyPosition);
-		DirectX::XMFLOAT3 targetPosition = characterPosition;
-		float closestDistanceSq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(characterVector, enemyVector)));
-
-		if (closestDistanceSq <= enemyDetectRange * enemyDetectRange)
-		{
-			if (closestDistanceSq > enemyAttackRange * enemyAttackRange)
-			{
-				enemy->MoveToward(targetPosition, deltaTime);
-			}
-			else
-			{
-				if (enemy->TryAttackToward(targetPosition))
-				{
-					KnockBackCharacterFrom(enemyPosition);
-				}
-			}
-		}
-		else
-		{
-			enemy->MoveRandom(deltaTime);
-		}
-	}
-
-	ResolveEnemyOverlaps();
-}
-
-void Engine::ResolveEnemyOverlaps()
-{
-	constexpr float minDistance = 0.85f;
-	constexpr float minDistanceSq = minDistance * minDistance;
-	constexpr float pushEpsilon = 0.02f;
-
-	for (size_t lhsIndex = 0; lhsIndex < _enemies.size(); ++lhsIndex)
-	{
-		const std::shared_ptr<EnemyObject>& lhs = _enemies[lhsIndex];
-		if (lhs == nullptr)
-		{
-			continue;
-		}
-
-		for (size_t rhsIndex = lhsIndex + 1; rhsIndex < _enemies.size(); ++rhsIndex)
-		{
-			const std::shared_ptr<EnemyObject>& rhs = _enemies[rhsIndex];
-			if (rhs == nullptr)
-			{
-				continue;
-			}
-
-			const DirectX::XMFLOAT3 lhsPosition = lhs->GetPosition();
-			const DirectX::XMFLOAT3 rhsPosition = rhs->GetPosition();
-			DirectX::XMFLOAT3 delta(
-				rhsPosition.x - lhsPosition.x,
-				0.0f,
-				rhsPosition.z - lhsPosition.z);
-			DirectX::XMVECTOR deltaVector = DirectX::XMLoadFloat3(&delta);
-			float distanceSq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(deltaVector));
-
-			if (distanceSq >= minDistanceSq)
-			{
-				continue;
-			}
-
-			if (distanceSq <= 0.0001f)
-			{
-				delta = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
-				deltaVector = DirectX::XMLoadFloat3(&delta);
-				distanceSq = 1.0f;
-			}
-
-			const float distance = std::sqrt(distanceSq);
-			const float pushDistance = (minDistance - distance) * 0.5f + pushEpsilon;
-			deltaVector = DirectX::XMVector3Normalize(deltaVector);
-			DirectX::XMStoreFloat3(&delta, deltaVector);
-
-			DirectX::XMFLOAT3 newLhsPosition = lhsPosition;
-			newLhsPosition.x -= delta.x * pushDistance;
-			newLhsPosition.z -= delta.z * pushDistance;
-
-			DirectX::XMFLOAT3 newRhsPosition = rhsPosition;
-			newRhsPosition.x += delta.x * pushDistance;
-			newRhsPosition.z += delta.z * pushDistance;
-
-			lhs->SetPosition(newLhsPosition);
-			rhs->SetPosition(newRhsPosition);
-		}
-	}
+			KnockBackCharacterFrom(sourcePosition);
+		});
 }
 
 void Engine::RenderEnemyObjects()
@@ -497,7 +425,7 @@ void Engine::RenderEnemyObjects()
 
 	for (const std::shared_ptr<EnemyObject>& enemy : _enemies)
 	{
-		if (enemy == nullptr)
+		if (enemy == nullptr || enemy->IsDead())
 		{
 			continue;
 		}
@@ -512,83 +440,6 @@ void Engine::RenderEnemyObjects()
 			_shadowShaderResourceView.Get(),
 			_shadowSamplerState.Get());
 	}
-}
-
-void Engine::CreateAttackCollider()
-{
-	_attackCollider = std::make_shared<BoxCollider>(DirectX::XMFLOAT3(0.9f, 0.9f, 0.75f));
-	_attackCollider->SetCenter(DirectX::XMFLOAT3(0.0f, 0.9f, 0.0f));
-	_attackCollider->Init();
-}
-
-void Engine::UpdateAttackCollider(float deltaTime)
-{
-	if (_attackColliderActiveTime > 0.0f)
-	{
-		_attackColliderActiveTime = (std::max)(0.0f, _attackColliderActiveTime - deltaTime);
-		ApplyAttackColliderToEnemies();
-	}
-}
-
-void Engine::ActivateAttackCollider()
-{
-	_attackColliderActiveTime = _attackColliderDuration;
-	ApplyAttackColliderToEnemies();
-}
-
-void Engine::ApplyAttackColliderToEnemies()
-{
-	if (_character == nullptr || _attackCollider == nullptr || _attackColliderActiveTime <= 0.0f)
-	{
-		return;
-	}
-
-	const DirectX::XMFLOAT3 characterPosition = _character->GetPosition();
-	const ColliderAABB attackAABB = _attackCollider->GetWorldAABB(GetAttackColliderWorldMatrix());
-
-	for (const std::shared_ptr<EnemyObject>& enemy : _enemies)
-	{
-		if (enemy == nullptr || enemy->GetCollider() == nullptr)
-		{
-			continue;
-		}
-
-		const ColliderAABB enemyAABB = enemy->GetCollider()->GetWorldAABB(enemy->GetWorldMatrix());
-		if (Collider::Intersects(attackAABB, enemyAABB))
-		{
-			enemy->HitFrom(characterPosition);
-		}
-	}
-}
-
-DirectX::XMMATRIX Engine::GetAttackColliderWorldMatrix() const
-{
-	if (_character == nullptr)
-	{
-		return DirectX::XMMatrixIdentity();
-	}
-
-	const DirectX::XMFLOAT3 characterPosition = _character->GetPosition();
-	const DirectX::XMFLOAT3 forward = _character->GetForwardVector();
-	const DirectX::XMFLOAT3 attackPosition(
-		characterPosition.x + forward.x * 0.85f,
-		characterPosition.y,
-		characterPosition.z + forward.z * 0.85f);
-	const float yaw = std::atan2(forward.x, forward.z);
-
-	return DirectX::XMMatrixRotationY(yaw) *
-		DirectX::XMMatrixTranslation(attackPosition.x, attackPosition.y, attackPosition.z);
-}
-
-void Engine::RenderAttackCollider()
-{
-	if (_attackCollider == nullptr || _camera == nullptr || _character == nullptr ||
-		!_character->IsColliderVisible() || _attackColliderActiveTime <= 0.0f)
-	{
-		return;
-	}
-
-	_attackCollider->Render(GetAttackColliderWorldMatrix(), _camera->GetViewMat(), _camera->GetProjMat());
 }
 
 bool Engine::IsCharacterColliding() const
@@ -609,7 +460,7 @@ bool Engine::IsCharacterColliding() const
 
 	for (const std::shared_ptr<EnemyObject>& enemy : _enemies)
 	{
-		if (enemy != nullptr && enemy->GetCollider() != nullptr &&
+		if (enemy != nullptr && !enemy->IsDead() && enemy->GetCollider() != nullptr &&
 			IsCollidingWithObject(*enemy->GetCollider(), enemy->GetWorldMatrix()))
 		{
 			return true;
@@ -660,30 +511,7 @@ void Engine::KnockBackCharacterFrom(const DirectX::XMFLOAT3& sourcePosition)
 		return;
 	}
 
-	const DirectX::XMFLOAT3 prevPosition = _character->GetPosition();
-	DirectX::XMFLOAT3 direction(
-		prevPosition.x - sourcePosition.x,
-		0.0f,
-		prevPosition.z - sourcePosition.z);
-	DirectX::XMVECTOR directionVector = DirectX::XMLoadFloat3(&direction);
-	if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(directionVector)) <= 0.0001f)
-	{
-		directionVector = DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f);
-	}
-
-	directionVector = DirectX::XMVector3Normalize(directionVector);
-	DirectX::XMStoreFloat3(&direction, directionVector);
-
-	constexpr float knockBackDistance = 0.55f;
-	DirectX::XMFLOAT3 pushedPosition = prevPosition;
-	pushedPosition.x += direction.x * knockBackDistance;
-	pushedPosition.z += direction.z * knockBackDistance;
-	_character->SetPosition(pushedPosition);
-
-	if (IsCharacterColliding())
-	{
-		_character->SetPosition(prevPosition);
-	}
+	_character->HitFrom(sourcePosition);
 }
 
 void Engine::UpdateCamera()
@@ -706,78 +534,14 @@ void Engine::UpdateCamera()
 	_camera->LookAt(cameraPosition, target);
 }
 
-void Engine::UpdateCharacterAnimation(bool isMoving, float deltaTime)
+void Engine::UpdateCharacterAnimation(bool attackPressed, bool isMoving, float deltaTime)
 {
 	if (_character == nullptr)
 	{
 		return;
 	}
 
-	if (_attackState != eAttackState::None)
-	{
-		_attackElapsed += deltaTime;
-	}
-
-	if (_keyboard->GetKeyDown('I'))
-	{
-		if (_attackState == eAttackState::Punch1 && _attackElapsed >= _punchExtendTime)
-		{
-			_character->PlayAnimation("Punch2", 0.1f, true);
-			_attackState = eAttackState::Punch2;
-			_attackElapsed = 0.0f;
-			_attackHitTriggered = false;
-		}
-		else if (_attackState == eAttackState::Punch2 && _attackElapsed >= _punchExtendTime)
-		{
-			_character->PlayAnimation("Punch1", 0.1f, true);
-			_attackState = eAttackState::Punch1;
-			_attackElapsed = 0.0f;
-			_attackHitTriggered = false;
-		}
-		else if (_attackState == eAttackState::None)
-		{
-			_character->PlayAnimation("Punch1", 0.1f, true);
-			_attackState = eAttackState::Punch1;
-			_attackElapsed = 0.0f;
-			_attackHitTriggered = false;
-		}
-	}
-
-	if (_attackState != eAttackState::None && !_attackHitTriggered && _attackElapsed >= _punchExtendTime)
-	{
-		ActivateAttackCollider();
-		_attackHitTriggered = true;
-	}
-
-	if (_attackState == eAttackState::Punch1)
-	{
-		const double duration = _character->GetAnimationDurationSeconds("Punch1");
-		if (duration > 0.0 && _attackElapsed >= static_cast<float>(duration))
-		{
-			_attackState = eAttackState::None;
-			_attackElapsed = 0.0f;
-			_attackHitTriggered = false;
-		}
-	}
-	else if (_attackState == eAttackState::Punch2)
-	{
-		const double duration = _character->GetAnimationDurationSeconds("Punch2");
-		if (duration > 0.0 && _attackElapsed >= static_cast<float>(duration))
-		{
-			_attackState = eAttackState::None;
-			_attackElapsed = 0.0f;
-			_attackHitTriggered = false;
-		}
-	}
-
-	UpdateAttackCollider(deltaTime);
-
-	if (_attackState != eAttackState::None)
-	{
-		return;
-	}
-
-	_character->PlayAnimation(isMoving ? "Walk" : "Idle", 0.2f);
+	_character->UpdateCombat(attackPressed, isMoving, deltaTime, _enemies);
 }
 
 void Engine::CreateRSState()

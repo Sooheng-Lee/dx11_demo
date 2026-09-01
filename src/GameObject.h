@@ -46,6 +46,7 @@ public:
 		const DirectX::XMMATRIX& lightProjMat);
 
 protected:
+	virtual bool CanUpdateRotation() const { return true; }
 	void CreateConstantBuffer();
 	void SetIdentityBoneTransforms();
 	void UpdateRotation(float deltaTime);

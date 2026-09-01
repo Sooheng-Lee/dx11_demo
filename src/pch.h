@@ -8,6 +8,7 @@
 #include <cfloat>
 #include <algorithm>
 #include <cstdlib>
+#include <functional>
 
 // DX
 #include <d3d11.h>
