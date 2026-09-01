@@ -31,6 +31,7 @@ public:
 	void ToggleColliderVisible();
 	void SetPosition(const DirectX::XMFLOAT3& position) { _position = position; }
 	const DirectX::XMFLOAT3& GetPosition() const { return _position; }
+	DirectX::XMFLOAT3 GetForwardVector() const;
 	DirectX::XMMATRIX GetWorldMatrix() const;
 	void Move(const DirectX::XMFLOAT3& direction, float deltaTime);
 	virtual void Update(float deltaTime, const DirectX::XMMATRIX& viewMat, const DirectX::XMMATRIX& projMat);

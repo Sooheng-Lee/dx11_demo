@@ -7,6 +7,7 @@
 #include <cmath>
 #include <cfloat>
 #include <algorithm>
+#include <cstdlib>
 
 // DX
 #include <d3d11.h>
@@ -85,4 +86,5 @@ inline DirectX::XMFLOAT4X4 ConvertMatrix(
 #include "Collider/SphereCollider.h"
 #include "Collider/CapsuleCollider.h"
 #include "GameObject.h"
+#include "EnemyObject.h"
 #include "Engine.h"

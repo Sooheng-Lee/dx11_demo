@@ -38,6 +38,15 @@ bool StaticMesh::Init(const MeshData<VertexTexData>& meshData, const DirectX::XM
 	return true;
 }
 
+void StaticMesh::SetColor(const DirectX::XMFLOAT4& color)
+{
+	_materialConstData.color = color;
+	if (_materialConstantBuffer != nullptr)
+	{
+		_materialConstantBuffer->Update(&_materialConstData);
+	}
+}
+
 void StaticMesh::Bind(ID3D11RasterizerState* rsState, ID3D11SamplerState* samplerState)
 {
 	UINT offset = 0;

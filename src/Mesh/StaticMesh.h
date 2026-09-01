@@ -9,6 +9,7 @@ public:
 	bool Init(const std::string& modelPath, const std::wstring& texturePath);
 	bool Init(const MeshData<VertexTexData>& meshData, const std::wstring& texturePath);
 	bool Init(const MeshData<VertexTexData>& meshData, const DirectX::XMFLOAT4& color);
+	void SetColor(const DirectX::XMFLOAT4& color);
 	void Bind(ID3D11RasterizerState* rsState, ID3D11SamplerState* samplerState);
 	void Draw();
 

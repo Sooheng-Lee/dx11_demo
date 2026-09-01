@@ -167,6 +167,11 @@ void GameObject::ToggleColliderVisible()
 	SetColliderVisible(!_colliderVisible);
 }
 
+DirectX::XMFLOAT3 GameObject::GetForwardVector() const
+{
+	return DirectX::XMFLOAT3(-std::sin(_rotationY), 0.0f, -std::cos(_rotationY));
+}
+
 DirectX::XMMATRIX GameObject::GetWorldMatrix() const
 {
 	return DirectX::XMMatrixRotationY(_rotationY) *

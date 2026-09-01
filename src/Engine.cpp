@@ -18,16 +18,6 @@ bool Engine::Init()
 	CreateShadowResources();
 	CreateMapObjects();
 
-	_man = std::make_shared<GameObject>();
-	_man->Init(
-		"Data\\FBX\\Man\\Man.fbx",
-		L"Data\\FBX\\Man\\Man_texture_0.png",
-		L"Data\\FBX\\Man\\Man_normal.png",
-		L"Data\\FBX\\Man\\Man_roughness.png",
-		L"Data\\FBX\\Man\\Man_metallic.png");
-	_man->SetPosition(_manFixedPosition);
-	_man->AddAnimation("Idle", "Data\\FBX\\Man\\Animation\\Idle.fbx");
-	_man->PlayAnimation("Idle", 0.0f);
 	DirectionalLight characterLight;
 	characterLight.SetDirection(0.3f, -1.0f, 0.3f);
 	characterLight.SetColor(1.0f, 1.0f, 1.0f);
@@ -39,11 +29,6 @@ bool Engine::Init()
 	_mapLightConstantBuffer = std::make_shared<ConstantBuffer<LightData>>();
 	_mapLightConstantBuffer->Create();
 	_mapLightConstantBuffer->Update(&_mapLightData);
-	_man->SetDirectionalLight(characterLight);
-	std::shared_ptr<CapsuleCollider> collider = std::make_shared<CapsuleCollider>(0.35f, 1.8f);
-	collider->SetCenter(DirectX::XMFLOAT3(0.0f, 0.9f, 0.0f));
-	collider->Init();
-	_man->SetCollider(collider);
 
 	_character = std::make_shared<GameObject>();
 	_character->Init(
@@ -63,6 +48,8 @@ bool Engine::Init()
 	womanCollider->SetCenter(DirectX::XMFLOAT3(0.0f, 0.9f, 0.0f));
 	womanCollider->Init();
 	_character->SetCollider(womanCollider);
+	CreateAttackCollider();
+	CreateEnemyObjects();
 
 	_camera = std::make_shared<Camera>();
 	UpdateCamera();
@@ -103,10 +90,6 @@ void Engine::Update()
 	if (_keyboard->GetKeyDown(VK_F1) && _character != nullptr)
 	{
 		_character->ToggleLightEnabled();
-		if (_man != nullptr)
-		{
-			_man->SetLightEnabled(_character->IsLightEnabled());
-		}
 		_mapLightData.useLight = _character->IsLightEnabled() ? 1 : 0;
 		if (_mapLightConstantBuffer != nullptr)
 		{
@@ -117,9 +100,12 @@ void Engine::Update()
 	if (_keyboard->GetKeyDown(VK_F2) && _character != nullptr)
 	{
 		_character->ToggleColliderVisible();
-		if (_man != nullptr)
+		for (const std::shared_ptr<EnemyObject>& enemy : _enemies)
 		{
-			_man->SetColliderVisible(_character->IsColliderVisible());
+			if (enemy != nullptr)
+			{
+				enemy->SetColliderVisible(_character->IsColliderVisible());
+			}
 		}
 		OutputDebugStringW(_character->IsColliderVisible() ? L"Collider On\n" : L"Collider Off\n");
 	}
@@ -149,15 +135,7 @@ void Engine::Update()
 			_camera->GetProjMat());
 	}
 
-	if (_man != nullptr)
-	{
-		_man->SetPosition(_manFixedPosition);
-		_man->PlayAnimation("Idle", 0.2f);
-		_man->Update(
-			GameTimer::GetInstance()->GetDeltaTime(),
-			_camera->GetViewMat(),
-			_camera->GetProjMat());
-	}
+	UpdateEnemies(GameTimer::GetInstance()->GetDeltaTime());
 }
 
 void Engine::Render()
@@ -170,10 +148,8 @@ void Engine::Render()
 	{
 		_character->Render(_rsState.Get(), _blendState.Get(), _samplerState.Get());
 	}
-	if (_man != nullptr)
-	{
-		_man->Render(_rsState.Get(), _blendState.Get(), _samplerState.Get());
-	}
+	RenderEnemyObjects();
+	RenderAttackCollider();
 
 	Graphic::GetInstance()->RenderEnd();
 }
@@ -279,10 +255,6 @@ void Engine::RenderShadowMap()
 		_character->RenderShadow(_rsState.Get(), _shadowVertexShader.get(), _lightViewMat, _lightProjMat);
 	}
 
-	if (_man != nullptr)
-	{
-		_man->RenderShadow(_rsState.Get(), _shadowVertexShader.get(), _lightViewMat, _lightProjMat);
-	}
 }
 
 void Engine::CreateMapObjects()
@@ -384,6 +356,241 @@ void Engine::RenderMapObjects()
 	}
 }
 
+void Engine::CreateEnemyObjects()
+{
+	const DirectX::XMFLOAT3 enemyPositions[] = {
+		DirectX::XMFLOAT3(-3.0f, 0.75f, -2.4f),
+		DirectX::XMFLOAT3(3.2f, 0.75f, -1.4f),
+		DirectX::XMFLOAT3(0.8f, 0.75f, 3.2f),
+	};
+
+	for (const DirectX::XMFLOAT3& position : enemyPositions)
+	{
+		std::shared_ptr<EnemyObject> enemy = std::make_shared<EnemyObject>();
+		enemy->Init(position);
+		_enemies.push_back(enemy);
+	}
+}
+
+void Engine::UpdateEnemies(float deltaTime)
+{
+	for (const std::shared_ptr<EnemyObject>& enemy : _enemies)
+	{
+		if (enemy != nullptr)
+		{
+			enemy->Update(deltaTime);
+		}
+	}
+
+	if (_character == nullptr)
+	{
+		return;
+	}
+
+	constexpr float enemyDetectRange = 4.0f;
+	constexpr float enemyAttackRange = 1.35f;
+	const DirectX::XMFLOAT3 characterPosition = _character->GetPosition();
+	const DirectX::XMVECTOR characterVector = DirectX::XMLoadFloat3(&characterPosition);
+	for (const std::shared_ptr<EnemyObject>& enemy : _enemies)
+	{
+		if (enemy == nullptr)
+		{
+			continue;
+		}
+
+		const DirectX::XMFLOAT3 enemyPosition = enemy->GetPosition();
+		const DirectX::XMVECTOR enemyVector = DirectX::XMLoadFloat3(&enemyPosition);
+		DirectX::XMFLOAT3 targetPosition = characterPosition;
+		float closestDistanceSq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(DirectX::XMVectorSubtract(characterVector, enemyVector)));
+
+		if (closestDistanceSq <= enemyDetectRange * enemyDetectRange)
+		{
+			if (closestDistanceSq > enemyAttackRange * enemyAttackRange)
+			{
+				enemy->MoveToward(targetPosition, deltaTime);
+			}
+			else
+			{
+				if (enemy->TryAttackToward(targetPosition))
+				{
+					KnockBackCharacterFrom(enemyPosition);
+				}
+			}
+		}
+		else
+		{
+			enemy->MoveRandom(deltaTime);
+		}
+	}
+
+	ResolveEnemyOverlaps();
+}
+
+void Engine::ResolveEnemyOverlaps()
+{
+	constexpr float minDistance = 0.85f;
+	constexpr float minDistanceSq = minDistance * minDistance;
+	constexpr float pushEpsilon = 0.02f;
+
+	for (size_t lhsIndex = 0; lhsIndex < _enemies.size(); ++lhsIndex)
+	{
+		const std::shared_ptr<EnemyObject>& lhs = _enemies[lhsIndex];
+		if (lhs == nullptr)
+		{
+			continue;
+		}
+
+		for (size_t rhsIndex = lhsIndex + 1; rhsIndex < _enemies.size(); ++rhsIndex)
+		{
+			const std::shared_ptr<EnemyObject>& rhs = _enemies[rhsIndex];
+			if (rhs == nullptr)
+			{
+				continue;
+			}
+
+			const DirectX::XMFLOAT3 lhsPosition = lhs->GetPosition();
+			const DirectX::XMFLOAT3 rhsPosition = rhs->GetPosition();
+			DirectX::XMFLOAT3 delta(
+				rhsPosition.x - lhsPosition.x,
+				0.0f,
+				rhsPosition.z - lhsPosition.z);
+			DirectX::XMVECTOR deltaVector = DirectX::XMLoadFloat3(&delta);
+			float distanceSq = DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(deltaVector));
+
+			if (distanceSq >= minDistanceSq)
+			{
+				continue;
+			}
+
+			if (distanceSq <= 0.0001f)
+			{
+				delta = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
+				deltaVector = DirectX::XMLoadFloat3(&delta);
+				distanceSq = 1.0f;
+			}
+
+			const float distance = std::sqrt(distanceSq);
+			const float pushDistance = (minDistance - distance) * 0.5f + pushEpsilon;
+			deltaVector = DirectX::XMVector3Normalize(deltaVector);
+			DirectX::XMStoreFloat3(&delta, deltaVector);
+
+			DirectX::XMFLOAT3 newLhsPosition = lhsPosition;
+			newLhsPosition.x -= delta.x * pushDistance;
+			newLhsPosition.z -= delta.z * pushDistance;
+
+			DirectX::XMFLOAT3 newRhsPosition = rhsPosition;
+			newRhsPosition.x += delta.x * pushDistance;
+			newRhsPosition.z += delta.z * pushDistance;
+
+			lhs->SetPosition(newLhsPosition);
+			rhs->SetPosition(newRhsPosition);
+		}
+	}
+}
+
+void Engine::RenderEnemyObjects()
+{
+	if (_camera == nullptr)
+	{
+		return;
+	}
+
+	for (const std::shared_ptr<EnemyObject>& enemy : _enemies)
+	{
+		if (enemy == nullptr)
+		{
+			continue;
+		}
+
+		enemy->Render(
+			_camera->GetViewMat(),
+			_camera->GetProjMat(),
+			_rsState.Get(),
+			_samplerState.Get(),
+			_mapLightConstantBuffer,
+			_shadowConstantBuffer,
+			_shadowShaderResourceView.Get(),
+			_shadowSamplerState.Get());
+	}
+}
+
+void Engine::CreateAttackCollider()
+{
+	_attackCollider = std::make_shared<BoxCollider>(DirectX::XMFLOAT3(0.9f, 0.9f, 0.75f));
+	_attackCollider->SetCenter(DirectX::XMFLOAT3(0.0f, 0.9f, 0.0f));
+	_attackCollider->Init();
+}
+
+void Engine::UpdateAttackCollider(float deltaTime)
+{
+	if (_attackColliderActiveTime > 0.0f)
+	{
+		_attackColliderActiveTime = (std::max)(0.0f, _attackColliderActiveTime - deltaTime);
+		ApplyAttackColliderToEnemies();
+	}
+}
+
+void Engine::ActivateAttackCollider()
+{
+	_attackColliderActiveTime = _attackColliderDuration;
+	ApplyAttackColliderToEnemies();
+}
+
+void Engine::ApplyAttackColliderToEnemies()
+{
+	if (_character == nullptr || _attackCollider == nullptr || _attackColliderActiveTime <= 0.0f)
+	{
+		return;
+	}
+
+	const DirectX::XMFLOAT3 characterPosition = _character->GetPosition();
+	const ColliderAABB attackAABB = _attackCollider->GetWorldAABB(GetAttackColliderWorldMatrix());
+
+	for (const std::shared_ptr<EnemyObject>& enemy : _enemies)
+	{
+		if (enemy == nullptr || enemy->GetCollider() == nullptr)
+		{
+			continue;
+		}
+
+		const ColliderAABB enemyAABB = enemy->GetCollider()->GetWorldAABB(enemy->GetWorldMatrix());
+		if (Collider::Intersects(attackAABB, enemyAABB))
+		{
+			enemy->HitFrom(characterPosition);
+		}
+	}
+}
+
+DirectX::XMMATRIX Engine::GetAttackColliderWorldMatrix() const
+{
+	if (_character == nullptr)
+	{
+		return DirectX::XMMatrixIdentity();
+	}
+
+	const DirectX::XMFLOAT3 characterPosition = _character->GetPosition();
+	const DirectX::XMFLOAT3 forward = _character->GetForwardVector();
+	const DirectX::XMFLOAT3 attackPosition(
+		characterPosition.x + forward.x * 0.85f,
+		characterPosition.y,
+		characterPosition.z + forward.z * 0.85f);
+	const float yaw = std::atan2(forward.x, forward.z);
+
+	return DirectX::XMMatrixRotationY(yaw) *
+		DirectX::XMMatrixTranslation(attackPosition.x, attackPosition.y, attackPosition.z);
+}
+
+void Engine::RenderAttackCollider()
+{
+	if (_attackCollider == nullptr || _camera == nullptr || _character == nullptr ||
+		!_character->IsColliderVisible() || _attackColliderActiveTime <= 0.0f)
+	{
+		return;
+	}
+
+	_attackCollider->Render(GetAttackColliderWorldMatrix(), _camera->GetViewMat(), _camera->GetProjMat());
+}
+
 bool Engine::IsCharacterColliding() const
 {
 	if (_character == nullptr || _character->GetCollider() == nullptr)
@@ -391,16 +598,19 @@ bool Engine::IsCharacterColliding() const
 		return false;
 	}
 
-	if (_man != nullptr && _man->GetCollider() != nullptr &&
-		IsCollidingWithObject(*_man->GetCollider(), _man->GetWorldMatrix()))
-	{
-		return true;
-	}
-
 	for (const MapObject& mapObject : _mapObjects)
 	{
 		if (mapObject.collider != nullptr &&
 			IsCollidingWithObject(*mapObject.collider, mapObject.worldMat))
+		{
+			return true;
+		}
+	}
+
+	for (const std::shared_ptr<EnemyObject>& enemy : _enemies)
+	{
+		if (enemy != nullptr && enemy->GetCollider() != nullptr &&
+			IsCollidingWithObject(*enemy->GetCollider(), enemy->GetWorldMatrix()))
 		{
 			return true;
 		}
@@ -435,6 +645,39 @@ void Engine::ResolveCharacterCollision(const DirectX::XMFLOAT3& prevPosition, co
 	pushedPosition.y -= moveDirection.y * pushBackDistance;
 	pushedPosition.z -= moveDirection.z * pushBackDistance;
 
+	_character->SetPosition(pushedPosition);
+
+	if (IsCharacterColliding())
+	{
+		_character->SetPosition(prevPosition);
+	}
+}
+
+void Engine::KnockBackCharacterFrom(const DirectX::XMFLOAT3& sourcePosition)
+{
+	if (_character == nullptr)
+	{
+		return;
+	}
+
+	const DirectX::XMFLOAT3 prevPosition = _character->GetPosition();
+	DirectX::XMFLOAT3 direction(
+		prevPosition.x - sourcePosition.x,
+		0.0f,
+		prevPosition.z - sourcePosition.z);
+	DirectX::XMVECTOR directionVector = DirectX::XMLoadFloat3(&direction);
+	if (DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(directionVector)) <= 0.0001f)
+	{
+		directionVector = DirectX::XMVectorSet(0.0f, 0.0f, -1.0f, 0.0f);
+	}
+
+	directionVector = DirectX::XMVector3Normalize(directionVector);
+	DirectX::XMStoreFloat3(&direction, directionVector);
+
+	constexpr float knockBackDistance = 0.55f;
+	DirectX::XMFLOAT3 pushedPosition = prevPosition;
+	pushedPosition.x += direction.x * knockBackDistance;
+	pushedPosition.z += direction.z * knockBackDistance;
 	_character->SetPosition(pushedPosition);
 
 	if (IsCharacterColliding())
@@ -482,19 +725,28 @@ void Engine::UpdateCharacterAnimation(bool isMoving, float deltaTime)
 			_character->PlayAnimation("Punch2", 0.1f, true);
 			_attackState = eAttackState::Punch2;
 			_attackElapsed = 0.0f;
+			_attackHitTriggered = false;
 		}
 		else if (_attackState == eAttackState::Punch2 && _attackElapsed >= _punchExtendTime)
 		{
 			_character->PlayAnimation("Punch1", 0.1f, true);
 			_attackState = eAttackState::Punch1;
 			_attackElapsed = 0.0f;
+			_attackHitTriggered = false;
 		}
 		else if (_attackState == eAttackState::None)
 		{
 			_character->PlayAnimation("Punch1", 0.1f, true);
 			_attackState = eAttackState::Punch1;
 			_attackElapsed = 0.0f;
+			_attackHitTriggered = false;
 		}
+	}
+
+	if (_attackState != eAttackState::None && !_attackHitTriggered && _attackElapsed >= _punchExtendTime)
+	{
+		ActivateAttackCollider();
+		_attackHitTriggered = true;
 	}
 
 	if (_attackState == eAttackState::Punch1)
@@ -504,6 +756,7 @@ void Engine::UpdateCharacterAnimation(bool isMoving, float deltaTime)
 		{
 			_attackState = eAttackState::None;
 			_attackElapsed = 0.0f;
+			_attackHitTriggered = false;
 		}
 	}
 	else if (_attackState == eAttackState::Punch2)
@@ -513,8 +766,11 @@ void Engine::UpdateCharacterAnimation(bool isMoving, float deltaTime)
 		{
 			_attackState = eAttackState::None;
 			_attackElapsed = 0.0f;
+			_attackHitTriggered = false;
 		}
 	}
+
+	UpdateAttackCollider(deltaTime);
 
 	if (_attackState != eAttackState::None)
 	{

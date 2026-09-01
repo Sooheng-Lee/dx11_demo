@@ -149,6 +149,7 @@
     <ClInclude Include="src\Collider\CapsuleCollider.h" />
     <ClInclude Include="src\Collider\Collider.h" />
     <ClInclude Include="src\Collider\SphereCollider.h" />
+    <ClInclude Include="src\EnemyObject.h" />
     <ClInclude Include="src\GameObject.h" />
     <ClInclude Include="src\Light\DirectionalLight.h" />
     <ClInclude Include="src\Light\PointLight.h" />
@@ -195,6 +196,10 @@
     <ClCompile Include="src\Collider\SphereCollider.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">..\pch.h</PrecompiledHeaderFile>
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">..\pch.h</PrecompiledHeaderFile>
+    </ClCompile>
+    <ClCompile Include="src\EnemyObject.cpp">
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
+      <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Release|x64'">pch.h</PrecompiledHeaderFile>
     </ClCompile>
     <ClCompile Include="src\GameObject.cpp">
       <PrecompiledHeaderFile Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">pch.h</PrecompiledHeaderFile>
