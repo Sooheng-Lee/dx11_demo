@@ -13,6 +13,7 @@ public:
 		const std::wstring& roughnessTexturePath = L"",
 		const std::wstring& metallicTexturePath = L"");
 	void Bind(ID3D11RasterizerState* rsState, ID3D11SamplerState* samplerState);
+	void BindShadow(ID3D11RasterizerState* rsState, VertexShader* shadowVertexShader);
 	void Draw();
 	void SetNormalTextureEnabled(bool enabled) { _useNormalTexture = enabled; }
 	bool IsNormalTextureEnabled() const { return _useNormalTexture; }

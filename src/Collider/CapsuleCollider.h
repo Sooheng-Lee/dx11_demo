@@ -15,6 +15,7 @@ public:
 
 protected:
 	void CreateLineMesh(MeshData<VertexColorData>& meshData) const override;
+	ColliderAABB GetLocalAABB() const override;
 
 private:
 	void AddRing(MeshData<VertexColorData>& meshData, float y) const;

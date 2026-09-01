@@ -76,3 +76,11 @@ void CapsuleCollider::AddHemisphereArc(MeshData<VertexColorData>& meshData, bool
 		}
 	}
 }
+
+ColliderAABB CapsuleCollider::GetLocalAABB() const
+{
+	return ColliderAABB{
+		DirectX::XMFLOAT3(-_radius, -_height * 0.5f, -_radius),
+		DirectX::XMFLOAT3(_radius, _height * 0.5f, _radius)
+	};
+}

@@ -5,6 +5,7 @@
 #include <memory>
 #include <string>
 #include <cmath>
+#include <cfloat>
 #include <algorithm>
 
 // DX
@@ -71,6 +72,7 @@ inline DirectX::XMFLOAT4X4 ConvertMatrix(
 
 
 #include "Structs.h"
+#include "Graphics/PrimitiveGeometry.h"
 #include "Model.h"
 #include "Animation/Animation.h"
 #include "Animation/Animator.h"

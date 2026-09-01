@@ -13,6 +13,7 @@ public:
 
 protected:
 	void CreateLineMesh(MeshData<VertexColorData>& meshData) const override;
+	ColliderAABB GetLocalAABB() const override;
 
 private:
 	float _radius = 0.5f;

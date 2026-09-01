@@ -81,6 +81,9 @@
     <ClInclude Include="src\Mesh\StaticMesh.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
+    <ClInclude Include="src\Graphics\PrimitiveGeometry.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
     <ClInclude Include="src\Collider\Collider.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
@@ -161,6 +164,9 @@
     <ClCompile Include="src\Mesh\StaticMesh.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="src\Graphics\PrimitiveGeometry.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
     <ClCompile Include="src\Collider\Collider.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
@@ -178,6 +184,7 @@
     <FxCompile Include="src\HLSL\DefaultColor.hlsl" />
     <FxCompile Include="src\HLSL\DefaultTexture.hlsl" />
     <FxCompile Include="src\HLSL\DefaultAnim.hlsl" />
+    <FxCompile Include="src\HLSL\ShadowAnim.hlsl" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Data\FBX\Woman\Woman.fbx" />

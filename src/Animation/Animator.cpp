@@ -117,6 +117,28 @@ bool Animator::HasAnimation(const std::string& name) const
 	return _animations.find(name) != _animations.end();
 }
 
+double Animator::GetCurrentAnimationDurationSeconds() const
+{
+	return GetAnimationDurationSeconds(_currentName);
+}
+
+double Animator::GetAnimationDurationSeconds(const std::string& name) const
+{
+	auto iter = _animations.find(name);
+	if (iter == _animations.end() || iter->second == nullptr)
+	{
+		return 0.0;
+	}
+
+	const double ticksPerSecond = iter->second->GetTicksPerSecond();
+	if (ticksPerSecond <= 0.0)
+	{
+		return 0.0;
+	}
+
+	return iter->second->GetDuration() / ticksPerSecond;
+}
+
 void Animator::SampleCurrent()
 {
 	auto iter = _animations.find(_currentName);
@@ -137,40 +159,12 @@ void Animator::BlendBoneTransformData(
 {
 	for (UINT idx = 0; idx < 128; ++idx)
 	{
-		DirectX::XMMATRIX fromMatrix = DirectX::XMMatrixTranspose(from.boneMats[idx]);
-		DirectX::XMMATRIX toMatrix = DirectX::XMMatrixTranspose(to.boneMats[idx]);
-		outBoneTransformData.boneMats[idx] = DirectX::XMMatrixTranspose(BlendMatrix(fromMatrix, toMatrix, blendRatio));
-	}
-}
-
-DirectX::XMMATRIX Animator::BlendMatrix(
-	const DirectX::XMMATRIX& from,
-	const DirectX::XMMATRIX& to,
-	float blendRatio) const
-{
-	DirectX::XMVECTOR fromScale;
-	DirectX::XMVECTOR fromRotation;
-	DirectX::XMVECTOR fromTranslation;
-	DirectX::XMVECTOR toScale;
-	DirectX::XMVECTOR toRotation;
-	DirectX::XMVECTOR toTranslation;
-
-	if (!DirectX::XMMatrixDecompose(&fromScale, &fromRotation, &fromTranslation, from) ||
-		!DirectX::XMMatrixDecompose(&toScale, &toRotation, &toTranslation, to))
-	{
-		DirectX::XMMATRIX result;
 		for (UINT row = 0; row < 4; ++row)
 		{
-			result.r[row] = DirectX::XMVectorLerp(from.r[row], to.r[row], blendRatio);
+			outBoneTransformData.boneMats[idx].r[row] =
+				DirectX::XMVectorLerp(from.boneMats[idx].r[row], to.boneMats[idx].r[row], blendRatio);
 		}
-		return result;
 	}
-
-	DirectX::XMVECTOR scale = DirectX::XMVectorLerp(fromScale, toScale, blendRatio);
-	DirectX::XMVECTOR rotation = DirectX::XMQuaternionSlerp(fromRotation, toRotation, blendRatio);
-	DirectX::XMVECTOR translation = DirectX::XMVectorLerp(fromTranslation, toTranslation, blendRatio);
-
-	return DirectX::XMMatrixAffineTransformation(scale, DirectX::g_XMZero, rotation, translation);
 }
 
 void Animator::SetIdentityBoneTransforms()

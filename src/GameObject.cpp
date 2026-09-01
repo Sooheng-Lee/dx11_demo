@@ -68,6 +68,16 @@ bool GameObject::PlayAnimation(const std::string& name, float blendDuration, boo
 	return _animator->Play(name, blendDuration, restart);
 }
 
+double GameObject::GetAnimationDurationSeconds(const std::string& name) const
+{
+	if (_animator == nullptr)
+	{
+		return 0.0;
+	}
+
+	return _animator->GetAnimationDurationSeconds(name);
+}
+
 void GameObject::SetDirectionalLight(const DirectionalLight& light)
 {
 	const DirectX::XMFLOAT3& direction = light.GetDirection();
@@ -157,6 +167,12 @@ void GameObject::ToggleColliderVisible()
 	SetColliderVisible(!_colliderVisible);
 }
 
+DirectX::XMMATRIX GameObject::GetWorldMatrix() const
+{
+	return DirectX::XMMatrixRotationY(_rotationY) *
+		DirectX::XMMatrixTranslation(_position.x, _position.y, _position.z);
+}
+
 void GameObject::Move(const DirectX::XMFLOAT3& direction, float deltaTime)
 {
 	DirectX::XMVECTOR moveDirection = DirectX::XMLoadFloat3(&direction);
@@ -179,9 +195,7 @@ void GameObject::Update(float deltaTime, const DirectX::XMMATRIX& viewMat, const
 {
 	UpdateRotation(deltaTime);
 
-	_worldMat =
-		DirectX::XMMatrixRotationY(_rotationY) *
-		DirectX::XMMatrixTranslation(_position.x, _position.y, _position.z);
+	_worldMat = GetWorldMatrix();
 	_viewMat = viewMat;
 	_projMat = projMat;
 
@@ -208,6 +222,11 @@ void GameObject::Render(
 		return;
 	}
 
+	_constData.worldMat = DirectX::XMMatrixTranspose(_worldMat);
+	_constData.viewMat = DirectX::XMMatrixTranspose(_viewMat);
+	_constData.projMat = DirectX::XMMatrixTranspose(_projMat);
+	_constantBuffer->Update(&_constData);
+
 	_skeletalMesh->Bind(rsState, samplerState);
 	Graphic::GetInstance()->GetDeviceContext()->VSSetConstantBuffers(0, 1, _constantBuffer->GetComPtr().GetAddressOf());
 	Graphic::GetInstance()->GetDeviceContext()->VSSetConstantBuffers(1, 1, _boneConstantBuffer->GetComPtr().GetAddressOf());
@@ -221,6 +240,29 @@ void GameObject::Render(
 	{
 		_collider->Render(_worldMat, _viewMat, _projMat);
 	}
+}
+
+void GameObject::RenderShadow(
+	ID3D11RasterizerState* rsState,
+	VertexShader* shadowVertexShader,
+	const DirectX::XMMATRIX& lightViewMat,
+	const DirectX::XMMATRIX& lightProjMat)
+{
+	if (_skeletalMesh == nullptr || shadowVertexShader == nullptr)
+	{
+		return;
+	}
+
+	TransformData shadowTransformData;
+	shadowTransformData.worldMat = DirectX::XMMatrixTranspose(GetWorldMatrix());
+	shadowTransformData.viewMat = DirectX::XMMatrixTranspose(lightViewMat);
+	shadowTransformData.projMat = DirectX::XMMatrixTranspose(lightProjMat);
+	_constantBuffer->Update(&shadowTransformData);
+
+	_skeletalMesh->BindShadow(rsState, shadowVertexShader);
+	Graphic::GetInstance()->GetDeviceContext()->VSSetConstantBuffers(0, 1, _constantBuffer->GetComPtr().GetAddressOf());
+	Graphic::GetInstance()->GetDeviceContext()->VSSetConstantBuffers(1, 1, _boneConstantBuffer->GetComPtr().GetAddressOf());
+	_skeletalMesh->Draw();
 }
 
 void GameObject::CreateConstantBuffer()

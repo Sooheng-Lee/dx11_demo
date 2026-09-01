@@ -8,6 +8,7 @@ public:
 
 public:
 	void SetPosition(FLOAT x, FLOAT y, FLOAT z);
+	void LookAt(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& target);
 	DirectX::XMFLOAT3 GetPosition() { return _position; };
 	DirectX::XMMATRIX GetViewMat() { return _viewMat; };
 	DirectX::XMMATRIX GetProjMat() { return _projMat; };

@@ -46,3 +46,11 @@ void SphereCollider::CreateLineMesh(MeshData<VertexColorData>& meshData) const
 		}
 	}
 }
+
+ColliderAABB SphereCollider::GetLocalAABB() const
+{
+	return ColliderAABB{
+		DirectX::XMFLOAT3(-_radius, -_radius, -_radius),
+		DirectX::XMFLOAT3(_radius, _radius, _radius)
+	};
+}

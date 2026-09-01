@@ -15,6 +15,8 @@ public:
 
 	bool Init();
 	void Render(const DirectX::XMMATRIX& ownerWorldMat, const DirectX::XMMATRIX& viewMat, const DirectX::XMMATRIX& projMat);
+	ColliderAABB GetWorldAABB(const DirectX::XMMATRIX& ownerWorldMat) const;
+	static bool Intersects(const ColliderAABB& lhs, const ColliderAABB& rhs);
 
 	void SetCenter(const DirectX::XMFLOAT3& center) { _center = center; }
 	const DirectX::XMFLOAT3& GetCenter() const { return _center; }
@@ -24,6 +26,7 @@ protected:
 	explicit Collider(eColliderType type);
 
 	virtual void CreateLineMesh(MeshData<VertexColorData>& meshData) const = 0;
+	virtual ColliderAABB GetLocalAABB() const = 0;
 
 private:
 	void CreateVertexShader();

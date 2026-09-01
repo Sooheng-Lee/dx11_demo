@@ -37,6 +37,17 @@ void SkeletalMesh::Bind(ID3D11RasterizerState* rsState, ID3D11SamplerState* samp
 	Graphic::GetInstance()->GetDeviceContext()->PSSetShaderResources(3, 1, &metallicTextureView);
 }
 
+void SkeletalMesh::BindShadow(ID3D11RasterizerState* rsState, VertexShader* shadowVertexShader)
+{
+	UINT offset = 0;
+	Graphic::GetInstance()->GetDeviceContext()->IASetInputLayout(_geometry->GetComPtr().Get());
+	Graphic::GetInstance()->GetDeviceContext()->IASetVertexBuffers(0, 1, _vertexBuffer->GetComPtr().GetAddressOf(), _vertexBuffer->GetStridePtr(), &offset);
+	Graphic::GetInstance()->GetDeviceContext()->IASetIndexBuffer(_indexBuffer->GetComPtr().Get(), DXGI_FORMAT_R32_UINT, offset);
+	Graphic::GetInstance()->GetDeviceContext()->RSSetState(rsState);
+	Graphic::GetInstance()->GetDeviceContext()->VSSetShader(shadowVertexShader->GetComPtr().Get(), nullptr, 0);
+	Graphic::GetInstance()->GetDeviceContext()->PSSetShader(nullptr, nullptr, 0);
+}
+
 void SkeletalMesh::Draw()
 {
 	Graphic::GetInstance()->GetDeviceContext()->DrawIndexed(_indexBuffer->GetCount(), 0, 0);

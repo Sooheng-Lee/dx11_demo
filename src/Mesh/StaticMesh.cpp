@@ -5,9 +5,35 @@ bool StaticMesh::Init(const std::string& modelPath, const std::wstring& textureP
 	CreateVertexShader();
 	CreateInputLayout();
 	CreateVertexBuffer(modelPath);
-	CreateIndexBuffer();
+	CreateIndexBuffer(_model.GetIndices());
 	CreatePixelShader();
 	CreateSRV(texturePath);
+	CreateMaterialBuffer(DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), true);
+
+	return true;
+}
+
+bool StaticMesh::Init(const MeshData<VertexTexData>& meshData, const std::wstring& texturePath)
+{
+	CreateVertexShader();
+	CreateInputLayout();
+	CreateVertexBuffer(meshData);
+	CreateIndexBuffer(meshData.indices);
+	CreatePixelShader();
+	CreateSRV(texturePath);
+	CreateMaterialBuffer(DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f), true);
+
+	return true;
+}
+
+bool StaticMesh::Init(const MeshData<VertexTexData>& meshData, const DirectX::XMFLOAT4& color)
+{
+	CreateVertexShader();
+	CreateInputLayout();
+	CreateVertexBuffer(meshData);
+	CreateIndexBuffer(meshData.indices);
+	CreatePixelShader();
+	CreateMaterialBuffer(color, false);
 
 	return true;
 }
@@ -22,7 +48,13 @@ void StaticMesh::Bind(ID3D11RasterizerState* rsState, ID3D11SamplerState* sample
 	Graphic::GetInstance()->GetDeviceContext()->VSSetShader(_vertexShader->GetComPtr().Get(), nullptr, 0);
 	Graphic::GetInstance()->GetDeviceContext()->PSSetShader(_pixelShader->GetComPtr().Get(), nullptr, 0);
 	Graphic::GetInstance()->GetDeviceContext()->PSSetSamplers(0, 1, &samplerState);
-	Graphic::GetInstance()->GetDeviceContext()->PSSetShaderResources(0, 1, _texture->GetComPtr().GetAddressOf());
+	if (_materialConstantBuffer != nullptr)
+	{
+		Graphic::GetInstance()->GetDeviceContext()->PSSetConstantBuffers(0, 1, _materialConstantBuffer->GetComPtr().GetAddressOf());
+	}
+
+	ID3D11ShaderResourceView* textureView = _texture != nullptr ? _texture->GetComPtr().Get() : nullptr;
+	Graphic::GetInstance()->GetDeviceContext()->PSSetShaderResources(0, 1, &textureView);
 }
 
 void StaticMesh::Draw()
@@ -54,10 +86,16 @@ void StaticMesh::CreateVertexBuffer(const std::string& modelPath)
 	_vertexBuffer->Create(_model.GetVertices());
 }
 
-void StaticMesh::CreateIndexBuffer()
+void StaticMesh::CreateVertexBuffer(const MeshData<VertexTexData>& meshData)
+{
+	_vertexBuffer = std::make_shared<VertexBuffer<VertexTexData>>();
+	_vertexBuffer->Create(meshData.vertices);
+}
+
+void StaticMesh::CreateIndexBuffer(const std::vector<UINT>& indices)
 {
 	_indexBuffer = std::make_shared<IndexBuffer>();
-	_indexBuffer->Create(_model.GetIndices());
+	_indexBuffer->Create(indices);
 }
 
 void StaticMesh::CreatePixelShader()
@@ -70,4 +108,13 @@ void StaticMesh::CreateSRV(const std::wstring& texturePath)
 {
 	_texture = std::make_shared<Texture>();
 	_texture->Create(texturePath.c_str());
+}
+
+void StaticMesh::CreateMaterialBuffer(const DirectX::XMFLOAT4& color, bool useTexture)
+{
+	_materialConstData.color = color;
+	_materialConstData.useTexture = useTexture ? 1 : 0;
+	_materialConstantBuffer = std::make_shared<ConstantBuffer<TextureMaterialData>>();
+	_materialConstantBuffer->Create();
+	_materialConstantBuffer->Update(&_materialConstData);
 }

@@ -11,6 +11,9 @@ public:
 	void Update(float deltaTime);
 
 	bool HasAnimation(const std::string& name) const;
+	const std::string& GetCurrentAnimationName() const { return _currentName; }
+	double GetCurrentAnimationDurationSeconds() const;
+	double GetAnimationDurationSeconds(const std::string& name) const;
 	const BoneTransformData& GetBoneTransformData() const { return _boneTransformData; }
 
 private:
@@ -20,10 +23,6 @@ private:
 		const BoneTransformData& to,
 		float blendRatio,
 		BoneTransformData& outBoneTransformData) const;
-	DirectX::XMMATRIX BlendMatrix(
-		const DirectX::XMMATRIX& from,
-		const DirectX::XMMATRIX& to,
-		float blendRatio) const;
 	void SetIdentityBoneTransforms();
 
 private:

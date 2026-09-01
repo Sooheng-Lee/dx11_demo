@@ -57,6 +57,52 @@ void Collider::Render(const DirectX::XMMATRIX& ownerWorldMat, const DirectX::XMM
 	Graphic::GetInstance()->GetDeviceContext()->DrawIndexed(_indexBuffer->GetCount(), 0, 0);
 }
 
+ColliderAABB Collider::GetWorldAABB(const DirectX::XMMATRIX& ownerWorldMat) const
+{
+	const ColliderAABB localAABB = GetLocalAABB();
+	const DirectX::XMMATRIX localMat =
+		DirectX::XMMatrixTranslation(_center.x, _center.y, _center.z);
+	const DirectX::XMMATRIX worldMat = localMat * ownerWorldMat;
+
+	const DirectX::XMFLOAT3 corners[8] = {
+		{localAABB.min.x, localAABB.min.y, localAABB.min.z},
+		{localAABB.min.x, localAABB.min.y, localAABB.max.z},
+		{localAABB.min.x, localAABB.max.y, localAABB.min.z},
+		{localAABB.min.x, localAABB.max.y, localAABB.max.z},
+		{localAABB.max.x, localAABB.min.y, localAABB.min.z},
+		{localAABB.max.x, localAABB.min.y, localAABB.max.z},
+		{localAABB.max.x, localAABB.max.y, localAABB.min.z},
+		{localAABB.max.x, localAABB.max.y, localAABB.max.z},
+	};
+
+	ColliderAABB worldAABB;
+	worldAABB.min = DirectX::XMFLOAT3(FLT_MAX, FLT_MAX, FLT_MAX);
+	worldAABB.max = DirectX::XMFLOAT3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+	for (const DirectX::XMFLOAT3& corner : corners)
+	{
+		DirectX::XMVECTOR worldCorner = DirectX::XMVector3Transform(DirectX::XMLoadFloat3(&corner), worldMat);
+		DirectX::XMFLOAT3 value;
+		DirectX::XMStoreFloat3(&value, worldCorner);
+
+		worldAABB.min.x = (std::min)(worldAABB.min.x, value.x);
+		worldAABB.min.y = (std::min)(worldAABB.min.y, value.y);
+		worldAABB.min.z = (std::min)(worldAABB.min.z, value.z);
+		worldAABB.max.x = (std::max)(worldAABB.max.x, value.x);
+		worldAABB.max.y = (std::max)(worldAABB.max.y, value.y);
+		worldAABB.max.z = (std::max)(worldAABB.max.z, value.z);
+	}
+
+	return worldAABB;
+}
+
+bool Collider::Intersects(const ColliderAABB& lhs, const ColliderAABB& rhs)
+{
+	return lhs.min.x <= rhs.max.x && lhs.max.x >= rhs.min.x
+		&& lhs.min.y <= rhs.max.y && lhs.max.y >= rhs.min.y
+		&& lhs.min.z <= rhs.max.z && lhs.max.z >= rhs.min.z;
+}
+
 void Collider::CreateVertexShader()
 {
 	_vertexShader = std::make_shared<VertexShader>();

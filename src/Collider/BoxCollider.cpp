@@ -34,3 +34,11 @@ void BoxCollider::CreateLineMesh(MeshData<VertexColorData>& meshData) const
 		0, 4, 1, 5, 2, 6, 3, 7
 	};
 }
+
+ColliderAABB BoxCollider::GetLocalAABB() const
+{
+	return ColliderAABB{
+		DirectX::XMFLOAT3(-_size.x * 0.5f, -_size.y * 0.5f, -_size.z * 0.5f),
+		DirectX::XMFLOAT3(_size.x * 0.5f, _size.y * 0.5f, _size.z * 0.5f)
+	};
+}

@@ -13,6 +13,15 @@ std::shared_ptr<Graphic> Graphic::GetInstance()
 void Graphic::RenderBegin()
 {
 	FLOAT clearView[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+	_deviceContext->OMSetRenderTargets(1, _renderTargetView.GetAddressOf(), _depthStencilView.Get());
+	D3D11_VIEWPORT viewport = {};
+	viewport.TopLeftX = 0.0f;
+	viewport.TopLeftY = 0.0f;
+	viewport.MinDepth = 0.0f;
+	viewport.MaxDepth = 1.0f;
+	viewport.Width = static_cast<FLOAT>(_width);
+	viewport.Height = static_cast<FLOAT>(_height);
+	_deviceContext->RSSetViewports(1, &viewport);
 	_deviceContext->ClearRenderTargetView(_renderTargetView.Get(), clearView);
 	_deviceContext->ClearDepthStencilView(_depthStencilView.Get(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 	_deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);

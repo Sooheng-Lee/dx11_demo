@@ -20,6 +20,17 @@ void Camera::SetPosition(FLOAT x, FLOAT y, FLOAT z)
 	UpdateMatrix();
 }
 
+void Camera::LookAt(const DirectX::XMFLOAT3& position, const DirectX::XMFLOAT3& target)
+{
+	_position = position;
+	DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&_position);
+	DirectX::XMVECTOR targetVector = DirectX::XMLoadFloat3(&target);
+
+	_viewMat = DirectX::XMMatrixLookAtLH(pos, targetVector, DEFAULT_UP_VECTOR);
+	const FLOAT aspectRatio = static_cast<FLOAT>(Graphic::GetInstance()->GetWidth()) / static_cast<FLOAT>(Graphic::GetInstance()->GetHeight());
+	_projMat = DirectX::XMMatrixPerspectiveFovLH(_fovAngle / 360.0f * DirectX::XM_2PI, aspectRatio, 0.1f, 1000.0f);
+}
+
 void Camera::UpdateMatrix()
 {
 	DirectX::XMVECTOR pos = DirectX::XMLoadFloat3(&_position);

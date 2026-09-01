@@ -13,6 +13,7 @@ public:
 
 protected:
 	void CreateLineMesh(MeshData<VertexColorData>& meshData) const override;
+	ColliderAABB GetLocalAABB() const override;
 
 private:
 	DirectX::XMFLOAT3 _size = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);

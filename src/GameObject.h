@@ -16,6 +16,7 @@ public:
 		const std::wstring& metallicTexturePath = L"");
 	bool AddAnimation(const std::string& name, const std::string& animationPath);
 	bool PlayAnimation(const std::string& name, float blendDuration = 0.2f, bool restart = false);
+	double GetAnimationDurationSeconds(const std::string& name) const;
 	void SetDirectionalLight(const DirectionalLight& light);
 	void SetLightEnabled(bool enabled);
 	void SetNormalTextureEnabled(bool enabled);
@@ -24,17 +25,24 @@ public:
 	bool IsLightEnabled() const { return _lightConstData.useLight != 0; }
 	void ToggleLightEnabled();
 	void SetCollider(const std::shared_ptr<Collider>& collider);
+	std::shared_ptr<Collider> GetCollider() const { return _collider; }
 	void SetColliderVisible(bool visible) { _colliderVisible = visible; }
 	bool IsColliderVisible() const { return _colliderVisible; }
 	void ToggleColliderVisible();
 	void SetPosition(const DirectX::XMFLOAT3& position) { _position = position; }
 	const DirectX::XMFLOAT3& GetPosition() const { return _position; }
+	DirectX::XMMATRIX GetWorldMatrix() const;
 	void Move(const DirectX::XMFLOAT3& direction, float deltaTime);
 	virtual void Update(float deltaTime, const DirectX::XMMATRIX& viewMat, const DirectX::XMMATRIX& projMat);
 	virtual void Render(
 		ID3D11RasterizerState* rsState,
 		ID3D11BlendState* blendState,
 		ID3D11SamplerState* samplerState);
+	void RenderShadow(
+		ID3D11RasterizerState* rsState,
+		VertexShader* shadowVertexShader,
+		const DirectX::XMMATRIX& lightViewMat,
+		const DirectX::XMMATRIX& lightProjMat);
 
 protected:
 	void CreateConstantBuffer();
