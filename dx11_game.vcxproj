@@ -156,6 +156,7 @@
     <ClInclude Include="src\Mesh\SkeletalMesh.h" />
     <ClInclude Include="src\Mesh\StaticMesh.h" />
     <ClInclude Include="src\Model.h" />
+    <ClInclude Include="src\PlayerCharacter.h" />
     <ClInclude Include="src\Utils\GameTimer.h" />
     <ClInclude Include="src\Graphics\Camera.h" />
     <ClInclude Include="src\Inputs\Keyboard.h" />

@@ -30,7 +30,7 @@ bool Engine::Init()
 	_mapLightConstantBuffer->Create();
 	_mapLightConstantBuffer->Update(&_mapLightData);
 
-	_character = std::make_shared<GameObject>();
+	_character = std::make_shared<PlayerCharacter>();
 	_character->Init(
 		"Data\\FBX\\Woman\\Woman.fbx",
 		L"Data\\FBX\\Woman\\Woman_texture.png",

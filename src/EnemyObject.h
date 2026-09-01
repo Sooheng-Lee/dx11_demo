@@ -1,10 +1,10 @@
 #pragma once
 
-class EnemyObject
+class EnemyObject : public GameObject
 {
 public:
 	EnemyObject() = default;
-	~EnemyObject() = default;
+	~EnemyObject() override = default;
 
 	bool Init(const DirectX::XMFLOAT3& position);
 	void Update(float deltaTime);
@@ -24,9 +24,7 @@ public:
 	void MoveRandom(float deltaTime);
 	void MoveToward(const DirectX::XMFLOAT3& targetPosition, float deltaTime);
 	void SetColliderVisible(bool visible) { _colliderVisible = visible; }
-	std::shared_ptr<Collider> GetCollider() const { return _collider; }
 	DirectX::XMMATRIX GetWorldMatrix() const;
-	const DirectX::XMFLOAT3& GetPosition() const { return _position; }
 	void SetPosition(const DirectX::XMFLOAT3& position);
 
 private:
@@ -36,9 +34,6 @@ private:
 
 private:
 	std::shared_ptr<StaticMesh> _mesh;
-	std::shared_ptr<ConstantBuffer<TransformData>> _constantBuffer;
-	std::shared_ptr<Collider> _collider;
-	DirectX::XMFLOAT3 _position = DirectX::XMFLOAT3(0.0f, 0.75f, 0.0f);
 	DirectX::XMFLOAT3 _tiltDirection = DirectX::XMFLOAT3(0.0f, 0.0f, 1.0f);
 	DirectX::XMFLOAT3 _wanderDirection = DirectX::XMFLOAT3(1.0f, 0.0f, 0.0f);
 	DirectX::XMFLOAT4 _baseColor = DirectX::XMFLOAT4(0.9f, 0.05f, 0.04f, 1.0f);
@@ -53,5 +48,4 @@ private:
 	float _chaseSpeed = 1.45f;
 	float _attackCooldown = 0.0f;
 	float _attackInterval = 1.15f;
-	bool _colliderVisible = false;
 };

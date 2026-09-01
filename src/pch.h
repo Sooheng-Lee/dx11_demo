@@ -86,5 +86,6 @@ inline DirectX::XMFLOAT4X4 ConvertMatrix(
 #include "Collider/SphereCollider.h"
 #include "Collider/CapsuleCollider.h"
 #include "GameObject.h"
+#include "PlayerCharacter.h"
 #include "EnemyObject.h"
 #include "Engine.h"
